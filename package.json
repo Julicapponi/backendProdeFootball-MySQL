@@ -29,14 +29,14 @@
         "express-myconnection": "^1.0.4",
         "mysql": "^2.18.1",
         "node-fetch": "2.6.6",
-        "promise-mysql": "^5.1.0"
+        "promise-mysql": "^5.1.0",
+        "morgan": "^1.10.0"
     },
     "devDependencies": {
         "@babel/cli": "^7.17.6",
         "@babel/core": "^7.17.8",
         "@babel/node": "^7.16.8",
         "@babel/preset-env": "^7.16.11",
-        "morgan": "^1.10.0",
         "nodemon": "^2.0.15"
     }
 }
