@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { methods as competitionController } from "./../controllers/competition.controller";
-const fetch = require('node-fetch');
+import { methods as competitionController } from "./../controllers/competition.controller.js";
+import fetch from "node-fetch";
 const router = Router();
 
 // Competiciones

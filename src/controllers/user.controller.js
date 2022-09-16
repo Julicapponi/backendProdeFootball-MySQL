@@ -1,4 +1,4 @@
-import { getConnection } from "../database/database";
+import { getConnection } from "../database/database.js";
 import * as bcryptjs from 'bcryptjs';
 
 const loginUsuario = async (req, res) => {
@@ -6,7 +6,6 @@ const loginUsuario = async (req, res) => {
         const email = req.body.email;
         const pass = req.body.password;
         console.log(email, pass);
-        let passwordHaash = await bcryptjs.hash(pass, 8);
         const connection = await getConnection();
         if (email && pass) {
             const result = await connection.query("SELECT * FROM users WHERE email = ?", email);
@@ -78,14 +77,15 @@ const addUsuario = async (req, res) => {
 const updateUsuario = async (req, res) => {
     try {
         const { id } = req.params;
-        const { iduser, name, userName, email, password, admin } = req.body;
-        if (name === undefined || userName === undefined || email === undefined || password === undefined || admin === undefined) {
+        const { name, userName, email, password } = req.body;
+        if (name === undefined || userName === undefined || email === undefined || password === undefined) {
             res.status(400).json({ message: "Bad Request. Please fill all field." });
         }
-        console.log('Edita usuario');
-        const user = { iduser, name, userName, email, password, admin};
+        console.log('Edita usuario', id, name, userName, email, password);
+        const user = {name, userName, email, password};
+        console.log('usuario', user);
         const connection = await getConnection();
-        const result = await connection.query("UPDATE users SET ? WHERE iduser = ?", [user, id]);
+        const result = await connection.query("UPDATE users SET ? WHERE iduser = ?",[user,id]);
         res.json({ message: "Usuario modificado con exito"});
     } catch (error) {
         res.status(500);

@@ -2,9 +2,9 @@ import express from "express";
 import morgan from "morgan";
 import cors from "cors";
 // Routes
-import userRoutes from "./routes/user.routes";
-import competitionRoutes from "./routes/competition.routes";
-import enfrentamientosRoutes from "./routes/enfrentamientos.routes";
+import userRoutes from "./routes/user.routes.js";
+import competitionRoutes from "./routes/competition.routes.js";
+import enfrentamientosRoutes from "./routes/enfrentamientos.routes.js";
 const app = express();
 
 // Settings

@@ -1,5 +1,5 @@
-import { getConnection } from "../database/database";
-const fetch = require('node-fetch');
+import { getConnection } from "../database/database.js";
+import fetch from "node-fetch";
 
 const getEnfrentamientos = async (req, res) => {
     const { id: id } = req.params;
@@ -31,8 +31,10 @@ const getEnfrentamientos = async (req, res) => {
             },
           };
           fetch(url, options).then((respuesta) => {
-              return respuesta.json()}).then((data) => res.json(data))
-              .catch((error)=> res.json({message:error}));
+              return respuesta.json()
+            }).then((data) => {
+                res.json(data);
+            }).catch((error)=> res.json({message:error}));
         }; 
     
 

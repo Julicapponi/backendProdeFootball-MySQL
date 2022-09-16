@@ -1,5 +1,6 @@
-import { getConnection } from "../database/database";
-const fetch = require('node-fetch');
+import { getConnection } from "../database/database.js";
+import fetch from "node-fetch";
+
 
 const getCompetitions = async (req, res) => {
     const url = 'https://api-football-v1.p.rapidapi.com/v3/leagues';
@@ -56,7 +57,6 @@ const deleteCompetition = async (req, res) => {
 
 const getCompetitionsActivas = async (req, res) => {
     try {
-        
         const connection = await getConnection();
         const result = await connection.query("SELECT idcompetition, name, anio FROM competitions");
         console.log(result);
