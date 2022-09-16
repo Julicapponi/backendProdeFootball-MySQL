@@ -5,6 +5,7 @@ import cors from "cors";
 import userRoutes from "./routes/user.routes.js";
 import competitionRoutes from "./routes/competition.routes.js";
 import enfrentamientosRoutes from "./routes/enfrentamientos.routes.js";
+
 const app = express();
 
 // Settings

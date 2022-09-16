@@ -2,12 +2,15 @@
     "name": "restapi-nodejs-express-mysql",
     "version": "1.0.0",
     "description": "",
-    "type":"module",
-    "main": "index.js",
+    "type": "module",
+    "main": "./src/index.js",
     "nodemonConfig": {
-        "ignore": ["test/*", "docs/*"],
+        "ignore": [
+            "test/*",
+            "docs/*"
+        ],
         "delay": 2500
-      },
+    },
     "scripts": {
         "start": "node .",
         "babel-node": "babel-node --presets=@babel/preset-env",
@@ -36,5 +39,4 @@
         "morgan": "^1.10.0",
         "nodemon": "^2.0.15"
     }
-    
 }
