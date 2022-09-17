@@ -27,10 +27,10 @@
         "dotenv": "^16.0.0",
         "express": "^4.17.3",
         "express-myconnection": "^1.0.4",
-        "morgan": "^1.10.0",
         "mysql": "^2.18.1",
         "node-fetch": "2.6.6",
-        "promise-mysql": "^5.1.0"
+        "promise-mysql": "^5.1.0",
+        "morgan": "^1.10.0"
     },
     "devDependencies": {
         "@babel/cli": "^7.17.6",
