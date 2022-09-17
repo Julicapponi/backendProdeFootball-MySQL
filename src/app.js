@@ -10,6 +10,7 @@ const app = express();
 
 // Settings
 app.set("port", process.env.PORT || '');
+app.set("host", process.env.HOST || '0.0.0.0')
 
 // Middlewares
 app.use(morgan("dev"));
