@@ -9,7 +9,7 @@ import enfrentamientosRoutes from "./routes/enfrentamientos.routes.js";
 const app = express();
 
 // Settings
-app.set("port", 4000);
+app.set("port", process.env.PORT || 5000);
 
 // Middlewares
 app.use(morgan("dev"));
