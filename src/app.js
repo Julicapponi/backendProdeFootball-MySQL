@@ -9,7 +9,7 @@ import enfrentamientosRoutes from "./routes/enfrentamientos.routes.js";
 const app = express();
 
 // Settings
-app.set("port", process.env.PORT || '');
+app.set("port", process.env.PORT || process.env.PORT_HEROKU || 80);
 app.set("host", process.env.HOST || '0.0.0.0')
 
 // Middlewares
