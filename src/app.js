@@ -10,7 +10,7 @@ const app = express();
 
 // Settings
 app.set("port", process.env.PORT || process.env.PORT_HEROKU || 80);
-app.set("host", '0.0.0.0')
+app.set("host", '0.0.0.0');
 
 // Middlewares
 app.use(morgan("dev"));
