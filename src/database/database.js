@@ -10,10 +10,11 @@ const connection = mysql.createConnection({
 */
     //BD HEROKU
     host: 'us-cdbr-east-06.cleardb.net',
-    database: 'heroku_1e935464b510891', 
-    user: 'b97f768dd64fe5', 
-    password: '6b2f98f2' 
+    database: 'heroku_9da121ea22b70de', 
+    user: 'b006be620c9751', 
+    password: 'eb26edaf' 
 });
+
 
 
 export const getConnection = () => {
