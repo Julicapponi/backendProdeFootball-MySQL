@@ -60,10 +60,10 @@ const getCompetitionsActivas = async (req, res) => {
         const connection = await getConnection();
         const result = await connection.query("SELECT idcompetition, name, anio FROM competitions");
         console.log(result);
-        res.status(200).json(result);
+        return res.status(200).json(result);
     } catch (error) {
         res.status(500);
-        res.send(error.message);
+        return res.send(error.message);
     }
 };
 
