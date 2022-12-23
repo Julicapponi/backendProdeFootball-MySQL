@@ -68,6 +68,9 @@ const getCompetitionsActivas = async (req, res) => {
 };
 
 
+
+
+
 export const methods = {
     getCompetitions,
     getCompetition,

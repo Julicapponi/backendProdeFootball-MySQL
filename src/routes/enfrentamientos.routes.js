@@ -3,7 +3,7 @@ import { methods as enfrentamientosController } from "./../controllers/enfrentam
 const router = Router();
 
 // Competiciones
-router.get("/", enfrentamientosController.getEnfrentamientos); //     /obtener/enfrentamientos/:id/:anio
-router.get("/:id/:anio/", enfrentamientosController.getEnfrentamientosCompetition); 
-
+router.get("/guardar/enfrentamientos/", enfrentamientosController.saveEnfrentamientosCompetenciasActivas); 
+router.get("/list/:id/:anio/", enfrentamientosController.getEnfrentamientosApi);
+router.get("/:id/:anio/", enfrentamientosController.getEnfrentamientosBD);
 export default router;

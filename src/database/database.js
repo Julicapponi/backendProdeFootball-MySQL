@@ -11,7 +11,8 @@ import config from "./../config.js";
         password: config.password 
     */
         //BD HEROKU
-        connectionLimit: 10,
+        multipleStatements: true,
+        connectionLimit: 100,
         host: 'us-cdbr-east-06.cleardb.net',
         database: 'heroku_9da121ea22b70de',  
         user: 'b006be620c9751', 
