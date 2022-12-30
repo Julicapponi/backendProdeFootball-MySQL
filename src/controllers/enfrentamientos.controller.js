@@ -157,7 +157,8 @@ var enfrentamientosDeTodasLasCompActivas = [];
         const addPronostico = async (req, res) => {
             try {
                 const { golesLocal, golesVisit, idUser, idEnfrentamiento} = req.body;
-                console.log( golesLocal, golesVisit, idUser, idEnfrentamiento);
+                console.log('Se Pronostica el enfrentamiento con id: '+idEnfrentamiento+' el usuario con id: ', idUser);
+                console.log('goles local: '+ golesLocal + ' goles visitante');
                 if (idUser === undefined || idEnfrentamiento === undefined) {
                     res.status(400).json({ message: "Bad Request. Please fill all field." });
                 }
@@ -165,7 +166,7 @@ var enfrentamientosDeTodasLasCompActivas = [];
                 // inserta un nuevo pronostico
                 const sqlInsertPronostico = `INSERT INTO pronosticos (golesLocalPronosticado, golesVisitPronosticado, idUser, idEnfrentamiento) VALUES ('${golesLocal}','${golesVisit}','${idUser}','${idEnfrentamiento}') ON DUPLICATE KEY UPDATE golesLocalPronosticado=VALUES(golesLocalPronosticado), golesVisitPronosticado=VALUES(golesVisitPronosticado)`;
                 await connection.query(sqlInsertPronostico);
-                res.status(200).json({cargoPronostico: true, message: "Usuario agregado con exito"});
+                res.status(200).json({cargoPronostico: true, message: "Pronostico agregado con exito"});
             } catch (error) {
                 res.status(500).json({cargoPronostico: false, message: "No se pudo cargar el pronostico"});;
                 res.send(error.message);

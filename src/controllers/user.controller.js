@@ -98,6 +98,8 @@ const deleteUsuario = async (req, res) => {
         const { id } = req.params;
         const connection = await getConnection();
         const result = await connection.query("DELETE FROM users WHERE iduser = ?", id);
+        const sqlDeleteGroup = `DELETE FROM grupos WHERE idUserCreador='${id}'`;
+        await connection.query(sqlDeleteGroup);
         res.json({ message: "Usuario eliminado con exito"});
     } catch (error) {
         res.status(500);
