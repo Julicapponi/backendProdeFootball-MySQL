@@ -3,7 +3,10 @@ import { methods as enfrentamientosController } from "./../controllers/enfrentam
 const router = Router();
 
 // Competiciones
+router.post("/guardar/pronostico/", enfrentamientosController.addPronostico); 
+router.get("/pronosticados/:idComp/:idUser/", enfrentamientosController.getEnfrentamientosBDPronosticados);
 router.get("/guardar/enfrentamientos/", enfrentamientosController.saveEnfrentamientosCompetenciasActivas); 
 router.get("/list/:id/:anio/", enfrentamientosController.getEnfrentamientosApi);
 router.get("/:id/:anio/", enfrentamientosController.getEnfrentamientosBD);
+
 export default router;

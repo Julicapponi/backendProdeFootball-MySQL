@@ -38,6 +38,23 @@ var enfrentamientosDeTodasLasCompActivas = [];
             res.send(error.message);
         }
     }
+
+     // SE OBTIENEN ENFRENTAMIENTOS PRONOSTICADOS POR COMPETENCIA POR USUARIO DESDE LA BASE DE DATOS
+     const getEnfrentamientosBDPronosticados = async (req, res) => {
+        try {
+        const { idComp: idComp } = req.params;
+        const { idUser: idUser } = req.params;
+        console.log('Competencia seleccionada: ' +idComp + 'y el usuario' + idUser);
+        const connection = await getConnection();
+        const sqlSelectPronosticados = 'SELECT * FROM enfrentamientos JOIN pronosticos ON enfrentamientos.idEnfrentamiento = pronosticos.idEnfrentamiento where enfrentamientos.idLiga = '+idComp+' AND pronosticos.idUser = '+idUser;
+        const result = await connection.query(sqlSelectPronosticados);
+        res.status(200).json(result);
+        } catch (error) {
+            res.status(500);
+            res.send(error.message);
+        }
+    }
+    
         
     // SE GUARDAN LOS ENFRENTAMIENTOS DE LAS COMPETENCIAS ACTIVAS, PROCESO DE TAREA PROGRAMADA TODOS LOS DIAS
         const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
@@ -136,6 +153,25 @@ var enfrentamientosDeTodasLasCompActivas = [];
         });
         }   
 
+
+        const addPronostico = async (req, res) => {
+            try {
+                const { golesLocal, golesVisit, idUser, idEnfrentamiento} = req.body;
+                console.log( golesLocal, golesVisit, idUser, idEnfrentamiento);
+                if (idUser === undefined || idEnfrentamiento === undefined) {
+                    res.status(400).json({ message: "Bad Request. Please fill all field." });
+                }
+                const connection = await getConnection();
+                // inserta un nuevo pronostico
+                const sqlInsertPronostico = `INSERT INTO pronosticos (golesLocalPronosticado, golesVisitPronosticado, idUser, idEnfrentamiento) VALUES ('${golesLocal}','${golesVisit}','${idUser}','${idEnfrentamiento}') ON DUPLICATE KEY UPDATE golesLocalPronosticado=VALUES(golesLocalPronosticado), golesVisitPronosticado=VALUES(golesVisitPronosticado)`;
+                await connection.query(sqlInsertPronostico);
+                res.status(200).json({cargoPronostico: true, message: "Usuario agregado con exito"});
+            } catch (error) {
+                res.status(500).json({cargoPronostico: false, message: "No se pudo cargar el pronostico"});;
+                res.send(error.message);
+            }
+        };
+
         async function partidoModificadoPorAdmin (connection) {
             var sql = "SELECT * FROM enfrentamientos";
            await connection.query(sql, function(error, results){
@@ -152,7 +188,10 @@ var enfrentamientosDeTodasLasCompActivas = [];
         }   
        
 export const methods = {
+    addPronostico,
     getEnfrentamientosApi,
     getEnfrentamientosBD,
-    saveEnfrentamientosCompetenciasActivas
+    getEnfrentamientosBDPronosticados,
+    saveEnfrentamientosCompetenciasActivas,
+
 };
