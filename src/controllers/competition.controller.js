@@ -46,13 +46,13 @@ const deleteCompetition = async (req, res) => {
     try {
         const { id } = req.params;
         const connection = await getConnection();
-        const result = await connection.query("DELETE FROM competitions WHERE idcompetition = ?", id);
-        res.json({ message: "Competencia desactivada, los usuarios no podrán visualizarla"});
+        const deleteCompetition = await connection.query("DELETE FROM competitions WHERE idcompetition = ?", id);
+        const deleteEnfrentamientos = await connection.query("DELETE FROM enfrentamientos WHERE idLiga = ?", id);
+        res.status(200).json({ message: "Competencia desactivada, los usuarios no podrán visualizarla"});
     } catch (error) {
         res.status(500);
         res.send(error.message);
     }
-    
 };
 
 const getCompetitionsActivas = async (req, res) => {
