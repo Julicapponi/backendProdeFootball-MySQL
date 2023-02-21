@@ -55,6 +55,24 @@ const deleteCompetition = async (req, res) => {
     }
 };
 
+
+const updateCompetition = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {idcompetition, name, anio} = req.body;
+        if (name === undefined) {
+            res.status(400).json({ message: "Bad Request. Please fill all field." });
+        }
+        const competicion = {idcompetition, name, anio};
+        const connection = await getConnection();
+        const result = await connection.query("UPDATE competitions SET ? WHERE idcompetition = ?",[competicion,idcompetition]);
+        res.json({ message: "Nombre de competencia modificada con exito"});
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+};
+
 const getCompetitionsActivas = async (req, res) => {
     try {
         const connection = await getConnection();
@@ -76,6 +94,6 @@ export const methods = {
     getCompetition,
     addCompetition,
     deleteCompetition,
-    getCompetitionsActivas
-    
+    getCompetitionsActivas,
+    updateCompetition
 };

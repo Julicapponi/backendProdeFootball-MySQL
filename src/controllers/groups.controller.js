@@ -209,6 +209,26 @@ const deleteUserGroup = async (req, res) => {
         }
 };
 
+
+
+const editGroup = async (req, res) => {
+    try {
+        const { groupId } = req.body;
+        console.log("grupo a editar:", groupId);
+        if (groupId === undefined) {
+            return res.status(400).json({ message: "No se pudo eliminar el grupo" });
+        }
+        const connection = await getConnection();
+        // inserta un nuevo grupo = '${id}'`)
+        const sqlEditGroup = `UPDATE FROM grupos WHERE idgrupo='${groupId}'`;
+        await connection.query(sqlDeleteGroup);
+        return res.status(200).json({message: "Grupo editado con exito"});
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+};
+
 const deleteGroup = async (req, res) => {
     try {
         const { groupId } = req.body;
@@ -242,5 +262,6 @@ export const methods = {
     gruposPorUser,
     listGroupsBusqueda,
     deleteUserGroup,
-    deleteGroup
+    deleteGroup,
+    editGroup
 };

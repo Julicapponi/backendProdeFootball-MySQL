@@ -13,7 +13,7 @@ router.get("/list/activas/", competitionController.getCompetitionsActivas);
 // add y delete es sinonimo de activar y desactivar competencia activa/visible para el usuario.
 router.post("/", competitionController.addCompetition);
 router.delete("/:id", competitionController.deleteCompetition);  
-
+router.put("/:id", competitionController.updateCompetition); 
 
 
 
