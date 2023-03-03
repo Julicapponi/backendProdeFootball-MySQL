@@ -8,5 +8,5 @@ router.get("/pronosticados/:idComp/:idUser/", enfrentamientosController.getEnfre
 router.get("/guardar/enfrentamientos/", enfrentamientosController.saveEnfrentamientosCompetenciasActivas); 
 router.get("/list/:id/:anio/", enfrentamientosController.getEnfrentamientosApi);
 router.get("/:id/:anio/", enfrentamientosController.getEnfrentamientosBD);
-
+router.put("/:id/", enfrentamientosController.editEnfrentamiento);
 export default router;

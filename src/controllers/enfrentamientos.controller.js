@@ -139,7 +139,11 @@ var enfrentamientosDeTodasLasCompActivas = [];
 
         async function guardaPartido (enfrentamientosDeTodasLasCompActivas, connection) {
             console.log(enfrentamientosDeTodasLasCompActivas);
-            var sql = "INSERT IGNORE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?";
+            //"INSERT IGNORE INTO": esto hará que se conserve el primer registro y se ignore cualquier otro repetido, dejando en cada caso el registro más viejo e ignorando todos los siguientes.
+
+            //var sql = "INSERT IGNORE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ? ON DUPLICATE KEY UPDATE (ganaLocal, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?,?,?,?,?,?,?,?)";
+            var sql = "REPLACE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?";
+            //var sql = "INSERT IGNORE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ? ON DUPLICATE KEY UPDATE (ganaLocal, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?,?,?,?,?,?,?,?)";
             setTimeout(() => {
                   const resultado = connection.query(sql, [enfrentamientosDeTodasLasCompActivas], function(error, results){
                     if (error) {
@@ -172,6 +176,33 @@ var enfrentamientosDeTodasLasCompActivas = [];
                 res.send(error.message);
             }
         };
+        
+        const editEnfrentamiento = async (req, res) => {
+            try {
+                const {id, nameLocal, nameVisit, golLocal, golVisit} = req.body;
+                console.log("Enfrentamiento a editar:", id);
+                if (id === undefined) {
+                    return res.status(400).json({ message: "No se pudo eliminar el grupo" });
+                }
+                const connection = await getConnection();
+                // inserta un nuevo grupo = '${id}'`)
+                //const result = await connection.query("UPDATE users SET ? WHERE iduser = ?",[user,id]);
+                connection.query(
+                    "UPDATE enfrentamientos SET nameLocal = ?, nameVisit = ?, golLocal = ?, golVisit = ? WHERE idEnfrentamiento = ?",
+                    [nameLocal, nameVisit, golLocal, golVisit, id],
+                    function (error, results, fields) {
+                      if(error){
+                        res.status(400).json({message: error});
+                      } else {
+                        res.status(200).json({message: "Enfrentamiento editado con exito"});
+                      }
+                    }
+                  );
+            } catch (error) {
+                res.status(500);
+                res.send(error.message);
+            }
+        };
 
         async function partidoModificadoPorAdmin (connection) {
             var sql = "SELECT * FROM enfrentamientos";
@@ -194,5 +225,6 @@ export const methods = {
     getEnfrentamientosBD,
     getEnfrentamientosBDPronosticados,
     saveEnfrentamientosCompetenciasActivas,
+    editEnfrentamiento
 
 };
