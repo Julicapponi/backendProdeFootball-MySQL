@@ -1,8 +1,194 @@
 import { getConnection } from "../database/database.js";
 import fetch from "node-fetch";
+
 import {methods as competitionController} from "./../controllers/competition.controller.js";
 var enfrentamientos = [];
 var enfrentamientosDeTodasLasCompActivas = [];
+
+    const calcularPuntajes = async (req, res) => {
+        try {
+            var compActivas  = [];
+            var partidosRespuestaOk = [];
+            var listIdsDePartidosApiCulminados = [];
+            var partidosApiCulminados = [];
+            enfrentamientosDeTodasLasCompActivas = [];
+            const connection = await getConnection();
+            let queryResult = await connection.query("SELECT idcompetition, name, anio FROM competitions");
+            queryResult.forEach((element,i) => {
+                compActivas.push({id: element.idcompetition, anio: element.anio});
+            });
+            // SE OBTIENEN LOS ENFRENTAMIENTOS DESDE LA API DE LAS COMPETENCIAS ACTIVAS
+            const enfrentamientos = await getEnfrentamientosApiPorDiaDeHoy(compActivas);
+
+            
+             // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
+        
+            for (let index = 0; index < enfrentamientos.length; index++) {
+                enfrentamientos[index].forEach((part, i) => {
+                if(part.fixture.status.long === 'Match Finished'){
+                    partidosApiCulminados.push(part);
+                    listIdsDePartidosApiCulminados.push(part.fixture.id);
+                }
+                });
+            }
+
+            // Si no hay partidos culminados a la hora de ejecutar la tarea programada, no hace nada, espera a la siguiente tarea programada
+            if(partidosApiCulminados.length != 0){
+                const pronosticosDePartidosCulminadosDeHoy =  await obtenerPronosticosPorId(listIdsDePartidosApiCulminados);
+                for (let i = 0; i < partidosApiCulminados.length; i++) {
+                    const partidoApi = partidosApiCulminados[i];
+                    for (let j = 0; j < pronosticosDePartidosCulminadosDeHoy.length; j++) {
+                        const partidoPronosticado = pronosticosDePartidosCulminadosDeHoy[j];
+                        if(partidoPronosticado.idEnfrentamiento === partidoApi.fixture.id && partidoPronosticado.isCalculoResultado === 0){
+                            partidosRespuestaOk.push(partidoPronosticado);
+                            var puntos = 0;
+                            if(partidoPronosticado.golesLocalPronosticado === partidoApi.goals.home && partidoPronosticado.golesVisitPronosticado === partidoApi.goals.away){
+                                //GANA 3 PUNTOS
+                                puntos = 3;
+                              } else if(partidoPronosticado.golesLocalPronosticado > partidoPronosticado.golesVisitPronosticado && partidoApi.goals.home > partidoApi.goals.away){
+                                puntos = 1;
+                                //GANA 1 PUNTO
+                              } else if(partidoPronosticado.golesVisitPronosticado > partidoPronosticado.golesLocalPronosticado &&  partidoApi.goals.away > partidoApi.goals.home) {
+                                //GANA 1 PUNTO
+                                puntos = 1;
+                              } else if(partidoPronosticado.golesLocalPronosticado !== partidoApi.goals.home && partidoPronosticado.golesVisitPronosticado !== partidoApi.goals.away && partidoApi.goals.home === partidoApi.goals.away){
+                                //GANA 1 PUNTO
+                                puntos = 1;
+                              } else {
+                                puntos = 0;
+                                //GANA 0 PUNTO
+                              }
+                                const connection = await getConnection();  
+                                
+                                    //INSERTA PUNTAJES PARA EL PRONOSTICO DEL USUARIO DADO EN LA TABLA PUNTAJES
+                                    try {
+                                        const sqlInsertPuntaje = `INSERT INTO puntajes (id_user, id_pronostico, puntosSumados, idEnfrentamiento) VALUES ('${partidoPronosticado.idUser}','${partidoPronosticado.idpronostico}','${puntos}','${partidoPronosticado.idEnfrentamiento}')`;
+                                        const resultInsertPuntaje = await new Promise((resolve, reject) => {
+                                        connection.query(sqlInsertPuntaje, (err, result) => {
+                                            if (err) {
+                                            console.error('Error al ejecutar la consulta: ', err);
+                                            reject(err);
+                                            } else {
+                                            console.log('Puntaje calculado con exito para el partido: '+ partidoPronosticado.idEnfrentamiento+' pronosticado por el usuario: '+partidoPronosticado.idUser+'. Este es el resultado: ', result);
+                                            resolve(result);
+                                            }
+                                        });
+                                        });
+                                        
+                                        // SI LA ANTERIOR INSERCION DE PUNTAJES FUE OK, SETEA 1 EN EL PRONOSTICO QUE FUE CALCULADO (isCalculoResultado = 1)
+                                        if(resultInsertPuntaje){
+                                            try {
+                                                const resultInsertCalculadoEnPronostico = await new Promise((resolve, reject) => {
+                                                    const sqlInsertCalculadoEnPronostico = `UPDATE pronosticos SET isCalculoResultado = 1 WHERE idUser = ${partidoPronosticado.idUser} AND idEnfrentamiento = ${partidoPronosticado.idEnfrentamiento}`;
+                                                    connection.query(sqlInsertCalculadoEnPronostico, (err, result) => {
+                                                        if (err) {
+                                                            console.error('Error al ejecutar la consulta: ', err);
+                                                            reject(err);
+                                                        } else {
+                                                            console.log('Parametro agregado isCalculoResultado a la tabla pronosticos con exito: ', result);
+                                                            resolve(result);
+                                                        }
+                                                  });
+                                                });
+                                                console.log(resultInsertCalculadoEnPronostico);
+                                              } catch (err) {
+                                                console.error(err);
+                                              }
+                                        }      
+                                        console.log(resultInsertPuntaje);
+                                    } catch (err) {
+                                        console.error(err);
+                                    }
+
+                                            
+                        }
+                    }
+                }
+                res.status(200).json({partidosCalculados: partidosRespuestaOk, message: "Termino exitosamente la sincro de calculo de puntajes"});
+            } 
+            return;
+        }catch (error) {
+            res.status(500).json({message: error.message});
+        }
+    };
+
+
+     // SE OBTIENEN ENFRENTAMIENTOS POR COMPETENCIA DIRECTOS DESDE LA API
+     function getEnfrentamientosApiPorDiaDeHoy(compActivas){
+        const now = new Date();
+        const timeZoneOffset = -3 * 60; // offset en minutos para GMT-3
+        const date = new Date(now.getTime() + timeZoneOffset * 60 * 1000).toISOString().split('T')[0];
+        console.log('Calcula puntajes para pronosticos del dia de hoy: ',date); // Por ejemplo: "2023-03-05"
+
+        // VER PORQUE POR EJEMPLO EL PARTIDO QUE TERMINÓ A LAS 21, formattedDate a las 21 local de arg, en UTC son las 00:00, entonces: 
+        // 1) si yo la sincro la hago a las 20:30 aun el partido no terminó, por lo tanto no puede calcular los resultados pronosticados con este partido
+        // 2) Si realizo la sincro a las 21:30 (1hora despues) el partido ya se terminó, pero ya no me va a traer ese partido de la api porque ya son las 21:30 (00:30 UTC) ya es el dia siguiente, 
+        //ese partido nunca se va a sincronizar y calcular los pronosticos
+        enfrentamientos = [];
+        return new Promise((resolve, reject) => {
+            compActivas.forEach(comp => {
+                if(comp.id != undefined || comp.id != null){  
+                    const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date='+date;
+                    const options = {
+                        method: 'GET',
+                        headers: {
+                            'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
+                            'X-RapidAPI-Key': '71aabd654amsh246d1bc92892422p1dcdedjsnb909789c53e7'
+                        },
+                    };
+                    fetch(url, options).then((respuesta) => {
+                        return respuesta.json()}).then((data) => {
+                            if(!data.response.length == 0){
+                                enfrentamientos.push(data.response);  
+                            }
+                        }).catch((error)=> res.json(
+                            {message:error}));
+                };        
+        });
+        setTimeout(() => {
+        resolve(enfrentamientos);
+        }, 3000)
+        })};
+        
+
+        async function obtenerPronosticosPorId(listIdsDePartidosApiCulminados){
+            // Consulta SQL
+            return new Promise(async resolve => {
+                const connection = await getConnection();
+                const sql = `SELECT * FROM pronosticos WHERE idEnfrentamiento IN (?)`;
+                // Ejecutar la consulta con los IDs como parámetros
+                connection.query(sql, [listIdsDePartidosApiCulminados], async (err, results) => {
+                    if (err) {
+                        console.error(err);
+                    }
+                    resolve (results);
+                });
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // SE OBTIENEN ENFRENTAMIENTOS POR COMPETENCIA DIRECTOS DESDE LA API
     const getEnfrentamientosApi = async (req, res) => {
@@ -67,9 +253,9 @@ var enfrentamientosDeTodasLasCompActivas = [];
                     compActivas.push({id: element.idcompetition, anio: element.anio});
                 });
 
-                // SE OBTIENEN LOS ENFRENTAMIENTOS DE LAS COMPETENCIAS
+                // SE OBTIENEN LOS ENFRENTAMIENTOS DESDE LA API DE LAS COMPETENCIAS ACTIVAS
                 const enfrentamientos = await obtenerEnfrentamientos(compActivas);
-                //console.log(enfrentamientos);
+
 
                  // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
                 for (let index = 0; index < enfrentamientos.length; index++) {
@@ -104,7 +290,7 @@ var enfrentamientosDeTodasLasCompActivas = [];
 
                 // SE GUARDA EN BD TODOS LOS ENFRENTAMIENTOS
                 guardaPartido(enfrentamientosDeTodasLasCompActivas, connection); 
-                return res.status(200).json(resultGuardado);
+                return res.json(resultGuardado);
             } catch (error) {
                 res.status(500);
                 res.send(error.message);
@@ -225,6 +411,7 @@ export const methods = {
     getEnfrentamientosBD,
     getEnfrentamientosBDPronosticados,
     saveEnfrentamientosCompetenciasActivas,
-    editEnfrentamiento
+    editEnfrentamiento,
+    calcularPuntajes
 
 };
