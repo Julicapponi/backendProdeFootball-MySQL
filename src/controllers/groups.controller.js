@@ -5,7 +5,7 @@ import * as bcryptjs from 'bcryptjs';
 
 const addGroup = async (req, res) => {
     try {
-        const { nameGrupo, idUserGreaGrupo } = req.body;
+        const { nameGrupo, idUserGreaGrupo, idCompetencia } = req.body;
         console.log('grupo:', nameGrupo);
         console.log('idUserGreaGrupo:', idUserGreaGrupo);
         if (idUserGreaGrupo === undefined) {
@@ -18,7 +18,7 @@ const addGroup = async (req, res) => {
         }
         const connection = await getConnection();
         // inserta un nuevo grupo
-        const sqlInsertGroup = `INSERT INTO grupos (nameGrupo, idUserCreador) VALUES('${nameGrupo}','${idUserGreaGrupo}')`;
+        const sqlInsertGroup = `INSERT INTO grupos (nameGrupo, idUserCreador, idCompetencia) VALUES('${nameGrupo}','${idUserGreaGrupo}','${idCompetencia}')`;
         await connection.query(sqlInsertGroup, async (error, resultGrupo) => {
             if (error) {
                 throw error;
@@ -185,7 +185,7 @@ const listGroupsBusqueda = async (req, res) => {
         res.status(200).json({ message: "No se pudo obtener el grupo"});
     }
     const connection = await getConnection();
-    const result = await connection.query(`SELECT * FROM grupos WHERE nameGrupo LIKE '${nameGrupo}%'`);
+    const result = await connection.query(`SELECT * FROM grupos WHERE nameGrupo LIKE '%${nameGrupo}%'`);
     console.log(result);
     return res.status(200).json(result);
 };

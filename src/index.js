@@ -5,11 +5,11 @@ import {methods} from "./controllers/enfrentamientos.controller.js";
 const main = () => {
     app.listen(app.get("port"),app.get("host"));
     console.log(`Server on port ${app.get("port")} en el host ${app.get("host")}`);
+/*
 
-    cron.schedule("*/15 * * * * *", () => {
-        console.log("La tarea programada cada 15 segundos se ha ejecutado");
         //methods.saveEnfrentamientosCompetenciasActivas();
-    });
+   
+    
 /*
 
     cron.schedule("* * * * * *", () => {
