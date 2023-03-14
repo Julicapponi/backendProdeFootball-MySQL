@@ -17,4 +17,7 @@ router.get("/buscar/:nameGrupo", groupsController.listGroupsBusqueda);
 router.post("/salir/", groupsController.deleteUserGroup);
 router.post("/eliminar/", groupsController.deleteGroup);
 router.post("/editar/", groupsController.editGroup);
+router.get("/puntajes/general/:idUser/:idGrupo/", groupsController.obtenerPuntajesGeneralPorUser);
+router.get("/puntajes/fecha/:idGrupo/:fecha/", groupsController.obtenerPuntajesPorFechaPorUser);
+
 export default router;

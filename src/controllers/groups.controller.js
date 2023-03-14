@@ -247,6 +247,43 @@ const deleteGroup = async (req, res) => {
     }
 };
 
+const obtenerPuntajesGeneralPorUser = async (req, res) => {
+    try {
+        const { idGrupo: idGrupo } = req.params;
+        
+        const connection = await getConnection();
+    
+        const grupo = parseInt(idGrupo);
+        //const puntajesGeneralPorUser = `SELECT users.iduser, users.name, COALESCE(SUM(CASE WHEN puntajes.fechaYHoraCalculado > grupos.fechaYHoraCreado THEN puntajes.puntosSumados ELSE 0 END), 0) AS puntos_acumulados FROM users LEFT JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id LEFT JOIN grupos ON miembros_grupo.group_id = grupos.idgrupo LEFT JOIN puntajes ON users.iduser = puntajes.id_user WHERE grupos.idgrupo = '${idGrupo}' AND grupos.fechaYHoraCreado < puntajes.fechaYHoraCalculado GROUP BY users.iduser`;
+        const puntajesGeneralPorUser = `SELECT users.iduser, users.name, COALESCE(SUM(CASE WHEN puntajes.fechaYHoraCalculado > grupos.fechaYHoraCreado AND puntajes.idComp = grupos.idCompetencia THEN puntajes.puntosSumados ELSE 0 END), 0) AS puntos_acumulados FROM users LEFT JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id LEFT JOIN grupos ON miembros_grupo.group_id = grupos.idgrupo LEFT JOIN puntajes ON users.iduser = puntajes.id_user WHERE grupos.idgrupo = '${idGrupo}' AND grupos.fechaYHoraCreado < puntajes.fechaYHoraCalculado GROUP BY users.iduser ORDER BY puntos_acumulados DESC`;
+        const result = await connection.query(puntajesGeneralPorUser);
+        return res.status(200).json(result);
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+};
+
+
+const obtenerPuntajesPorFechaPorUser = async (req, res) => {
+    try {
+        const { idGrupo: idGrupo } = req.params;
+        const { fecha: fecha } = req.params;
+        const connection = await getConnection();
+    
+        const grupo = parseInt(idGrupo);
+        //const puntajesGeneralPorUser = `SELECT users.iduser, users.name, COALESCE(SUM(CASE WHEN puntajes.fechaYHoraCalculado > grupos.fechaYHoraCreado THEN puntajes.puntosSumados ELSE 0 END), 0) AS puntos_acumulados FROM users LEFT JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id LEFT JOIN grupos ON miembros_grupo.group_id = grupos.idgrupo LEFT JOIN puntajes ON users.iduser = puntajes.id_user WHERE grupos.idgrupo = '${idGrupo}' AND grupos.fechaYHoraCreado < puntajes.fechaYHoraCalculado GROUP BY users.iduser`;
+        const puntajesGeneralPorUser = `SELECT users.iduser, users.name, COALESCE(SUM(CASE WHEN puntajes.fechaYHoraCalculado > grupos.fechaYHoraCreado AND puntajes.idComp = grupos.idCompetencia AND puntajes.roundFecha = '${fecha}' THEN puntajes.puntosSumados ELSE 0 END), 0) AS puntos_acumulados FROM users LEFT JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id LEFT JOIN grupos ON miembros_grupo.group_id = grupos.idgrupo LEFT JOIN puntajes ON users.iduser = puntajes.id_user WHERE grupos.idgrupo = '${idGrupo}' AND grupos.fechaYHoraCreado < puntajes.fechaYHoraCalculado GROUP BY users.iduser ORDER BY puntos_acumulados DESC`;
+        const result = await connection.query(puntajesGeneralPorUser);
+        return res.status(200).json(result);
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+};
+
+
+
 
 
 export const methods = {
@@ -263,5 +300,7 @@ export const methods = {
     listGroupsBusqueda,
     deleteUserGroup,
     deleteGroup,
-    editGroup
+    editGroup,
+    obtenerPuntajesGeneralPorUser,
+    obtenerPuntajesPorFechaPorUser
 };

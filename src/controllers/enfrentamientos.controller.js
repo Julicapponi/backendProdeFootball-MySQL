@@ -62,7 +62,7 @@ var enfrentamientosDeTodasLasCompActivas = [];
                                 
                                     //INSERTA PUNTAJES PARA EL PRONOSTICO DEL USUARIO DADO EN LA TABLA PUNTAJES
                                     try {
-                                        const sqlInsertPuntaje = `INSERT INTO puntajes (id_user, id_pronostico, puntosSumados, idEnfrentamiento) VALUES ('${partidoPronosticado.idUser}','${partidoPronosticado.idpronostico}','${puntos}','${partidoPronosticado.idEnfrentamiento}')`;
+                                        const sqlInsertPuntaje = `INSERT INTO puntajes (id_user, id_pronostico, puntosSumados, idEnfrentamiento, idComp, roundFecha) VALUES ('${partidoPronosticado.idUser}','${partidoPronosticado.idpronostico}','${puntos}','${partidoPronosticado.idEnfrentamiento}','${partidoApi.league.id}','${partidoApi.league.round}')`;
                                         const resultInsertPuntaje = await new Promise((resolve, reject) => {
                                         connection.query(sqlInsertPuntaje, (err, result) => {
                                             if (err) {
@@ -128,7 +128,8 @@ var enfrentamientosDeTodasLasCompActivas = [];
         return new Promise((resolve, reject) => {
             compActivas.forEach(comp => {
                 if(comp.id != undefined || comp.id != null){  
-                    const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date='+date;
+                    const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date=2023-03-13';
+                   // const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date='+date;
                     const options = {
                         method: 'GET',
                         headers: {
