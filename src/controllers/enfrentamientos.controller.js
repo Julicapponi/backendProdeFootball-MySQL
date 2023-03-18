@@ -128,8 +128,8 @@ var enfrentamientosDeTodasLasCompActivas = [];
         return new Promise((resolve, reject) => {
             compActivas.forEach(comp => {
                 if(comp.id != undefined || comp.id != null){  
-                    const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date=2023-03-13';
-                   // const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date='+date;
+                    const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date=2023-03-14';
+                   //const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date='+date;
                     const options = {
                         method: 'GET',
                         headers: {
@@ -168,27 +168,36 @@ var enfrentamientosDeTodasLasCompActivas = [];
         }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        const getPositionTablePorComp = async (req, res) => {
+            const { idComp: idComp } = req.params;
+            const { anio: anio } = req.params;
+            if(idComp !=null || idComp != undefined && anio !=null || anio != undefined){
+                const url = 'https://api-football-v1.p.rapidapi.com/v3/standings?season='+anio+'&league='+idComp;
+                const options = {
+                  method: 'GET',
+                  headers: {
+                    'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
+                    'X-RapidAPI-Key': '71aabd654amsh246d1bc92892422p1dcdedjsnb909789c53e7'
+                  }
+                };
+                
+                fetch(url, options).then((respuesta) => {
+                    return respuesta.json()}).then((data) => {
+                        if(!data.response.length == 0){
+                            if(data.response[0].league.standings.length === 1){
+                                res.status(200).json(data.response[0].league.standings[0]);
+                            } else {
+                                res.status(200).json(data.response[0].league.standings);
+                            }
+                        
+                        }
+                    }).catch((error)=> res.json({message:error}));
+            } else {
+                res.status(400).json({message:'liga null'});
+            }
+                      
+              
+        };
 
 
     // SE OBTIENEN ENFRENTAMIENTOS POR COMPETENCIA DIRECTOS DESDE LA API
@@ -413,6 +422,7 @@ export const methods = {
     getEnfrentamientosBDPronosticados,
     saveEnfrentamientosCompetenciasActivas,
     editEnfrentamiento,
-    calcularPuntajes
+    calcularPuntajes,
+    getPositionTablePorComp
 
 };

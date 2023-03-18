@@ -10,4 +10,6 @@ router.get("/list/:id/:anio/", enfrentamientosController.getEnfrentamientosApi);
 router.get("/calcularPuntajes", enfrentamientosController.calcularPuntajes);
 router.get("/:id/:anio/", enfrentamientosController.getEnfrentamientosBD);
 router.put("/:id/", enfrentamientosController.editEnfrentamiento);
+router.get("/tabla/posiciones/:idComp/:anio/", enfrentamientosController.getPositionTablePorComp);
+
 export default router;

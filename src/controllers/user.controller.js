@@ -1,29 +1,39 @@
 import { getConnection } from "../database/database.js";
 import * as bcryptjs from 'bcryptjs';
+import nodemailer from 'nodemailer';
 
 const loginUsuario = async (req, res) => {
-    try {
-        const email = req.body.email;
-        const pass = req.body.password;
-        console.log(email, pass);
-        const connection = await getConnection();
-        if (email && pass) {
-            const result = await connection.query("SELECT * FROM users WHERE email = ?", email);
-            if(result.length == 0){
-                console.log(result);
-                res.status(200).json({message:"Usuario o password incorrectos"});
-            } else {
-                console.log(result);
-                const user = result;
-                res.status(200).json({user, message:"Usuario logueado con exito"});
-            }
-        }
-    } catch (error) {
-        res.status(500);
-        res.send(error.message);
+    const { username, password } = req.body;
+  
+    if (!username || !password) {
+      return res.status(400).send('El nombre de usuario y la contraseña son obligatorios');
     }
   
-};
+    // Agregar validaciones
+    /*
+    if (username.length < 4 || username.length > 20) {
+      return res.status(400).send('El nombre de usuario debe tener entre 4 y 20 caracteres');
+    }
+  
+    if (!password.match(/^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{5,}$/)) {
+        return res.status(400).send('La contraseña debe tener al menos 5 caracteres, una letra mayúscula y un número');
+      }
+  */
+    try {
+      const connection = await getConnection();
+      const results = await connection.query('SELECT * FROM users WHERE BINARY userName = ? AND BINARY password = ?', [username, password]);
+      if (results.length === 1) {
+        const user =results[0];
+        res.status(200).send({user, message:"Usuario logueado con exito"});
+      } else {
+        res.status(401).send({message:'Nombre de usuario o contraseña incorrectos'});
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Error del servidor al procesar la solicitud');
+    }
+}
+
 
 const getUsuarios = async (req, res) => {
     try {
@@ -52,25 +62,68 @@ const getUsuario = async (req, res) => {
 
 const addUsuario = async (req, res) => {
     try {
-        const { name, userName, email, password, admin } = req.body;
-        console.log( name, userName, email, password, admin);
-        if (name === undefined || userName === undefined || email === undefined || password === undefined || admin === undefined) {
-            res.status(400).json({ message: "Bad Request. Please fill all field." });
+        const { name, username, email, password, confirmPassword, admin } = req.body;
+        console.log( name, username, email, password, admin);
+
+        if (!name || !username || !email || !password || admin === undefined) {
+            res.status(400).json({ message: "Bad Request. Please fill all fields." });
+            return;
         }
+        const nameRegex = /^.{2,20}$/;
+        if (!nameRegex.test(username)) {
+            res.status(400).json({ message: "Nombre con caracteres inferiores a 2 o mayor a 20, corrijalo" });
+            return;
+        }
+
+        // Validar el nombre de usuario
+        const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+        if (!usernameRegex.test(username)) {
+            res.status(400).json({ message: "Nombre de usuario inválido. Debe tener entre 3 y 20 caracteres y solo puede contener letras, números, guiones y guiones bajos." });
+            return;
+        }
+
+        // Validar el correo electrónico
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        
+        if (!emailRegex.test(email)) {
+            res.status(400).json({ message: "Correo electrónico inválido. Por favor, ingrese una dirección de correo electrónico válida." });
+            return;
+        }
+
+        // Validar la contraseña
+        const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            res.status(400).json({ message: "Contraseña inválida. Debe tener al menos 8 caracteres, una letra mayúscula, una letra minúscula y un número." });
+            return;
+        }
+
+        if(password != confirmPassword){
+            res.status(400).json({ message: "Las contraseñas no son iguales, salga y vuelva a reintentar" });
+            return;
+        }
+
+
         const connection = await getConnection();
-        // inserta un nuevo usuario
-        const sqlInsertUser = `INSERT INTO users ( name, username, email, password, admin) VALUES ('${name}','${userName}','${email}','${password}','${admin}')`;
-        //valido si existe en bd el correo ingresado
-        const resultExistUserInBD = await connection.query("SELECT * FROM users WHERE email = ?", email);
-        if(resultExistUserInBD.length == 0){
-            await connection.query(sqlInsertUser);
-            res.status(200).json({message: "Usuario agregado con exito"});
-        } else {
-            res.status(200).json({ message: "Este correo electronico ya está registrado"});
+
+        // Verificar si el email o el username ya existen en la base de datos
+        const sqlCheckUser = `SELECT * FROM users WHERE email = ? OR username = ?`;
+        const resultExistUserInBD = await connection.query(sqlCheckUser, [email, username]);
+
+        if (resultExistUserInBD.length > 0) {
+            if (resultExistUserInBD[0].username === username) {
+                res.status(400).json({ message: "Este nombre de usuario ya está registrado" });
+            } else {
+                res.status(400).json({ message: "Este correo electrónico o usuario ya está registrado" });
+            }
+            return;
         }
+
+        // Insertar un nuevo usuario
+        const sqlInsertUser = `INSERT INTO users (name, username, email, password, admin) VALUES (?, ?, ?, ?, ?)`;
+        await connection.query(sqlInsertUser, [name, username, email, password, admin]);
+        res.status(200).json({ message: "Usuario agregado con éxito" });
     } catch (error) {
-        res.status(500);
-        res.send(error.message);
+        res.status(500).send(error.message);
     }
 };
 
@@ -114,5 +167,5 @@ export const methods = {
     addUsuario,
     updateUsuario,
     deleteUsuario,
-    loginUsuario
+    loginUsuario,
 };
