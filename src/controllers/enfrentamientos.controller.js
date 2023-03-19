@@ -114,42 +114,49 @@ var enfrentamientosDeTodasLasCompActivas = [];
 
 
      // SE OBTIENEN ENFRENTAMIENTOS POR COMPETENCIA DIRECTOS DESDE LA API
-     function getEnfrentamientosApiPorDiaDeHoy(compActivas){
+     async function getEnfrentamientosApiPorDiaDeHoy(compActivas) {
         const now = new Date();
         const timeZoneOffset = -3 * 60; // offset en minutos para GMT-3
         const date = new Date(now.getTime() + timeZoneOffset * 60 * 1000).toISOString().split('T')[0];
-        console.log('Calcula puntajes para pronosticos del dia de hoy: ',date); // Por ejemplo: "2023-03-05"
-
-        // VER PORQUE POR EJEMPLO EL PARTIDO QUE TERMINÓ A LAS 21, formattedDate a las 21 local de arg, en UTC son las 00:00, entonces: 
-        // 1) si yo la sincro la hago a las 20:30 aun el partido no terminó, por lo tanto no puede calcular los resultados pronosticados con este partido
-        // 2) Si realizo la sincro a las 21:30 (1hora despues) el partido ya se terminó, pero ya no me va a traer ese partido de la api porque ya son las 21:30 (00:30 UTC) ya es el dia siguiente, 
-        //ese partido nunca se va a sincronizar y calcular los pronosticos
-        enfrentamientos = [];
-        return new Promise((resolve, reject) => {
-            compActivas.forEach(comp => {
-                if(comp.id != undefined || comp.id != null){  
-                    const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date=2023-03-14';
-                   //const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio+'&date='+date;
-                    const options = {
-                        method: 'GET',
-                        headers: {
-                            'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
-                            'X-RapidAPI-Key': '71aabd654amsh246d1bc92892422p1dcdedjsnb909789c53e7'
-                        },
-                    };
-                    fetch(url, options).then((respuesta) => {
-                        return respuesta.json()}).then((data) => {
-                            if(!data.response.length == 0){
-                                enfrentamientos.push(data.response);  
-                            }
-                        }).catch((error)=> res.json(
-                            {message:error}));
-                };        
-        });
-        setTimeout(() => {
-        resolve(enfrentamientos);
-        }, 3000)
-        })};
+        console.log('Calcula puntajes para pronosticos del dia de hoy: ', date); // Por ejemplo: "2023-03-05"
+      
+        const enfrentamientos = [];
+    
+      
+        try {
+          for (const comp of compActivas) {
+            if (comp.id) {
+                let url, fechaConsulta;
+                if (now.getHours() < 5) {
+                  // Si la hora actual está entre las 00:00 y las 03:00, obtiene los enfrentamientos del día anterior y el actual
+                  const fechaAnterior = new Date(now.getTime() + timeZoneOffset * 60 * 1000 - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                  url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&from=${fechaAnterior}&to=${date}`;
+                } else {
+                  // Si la hora actual es posterior a las 03:00, solo obtiene los enfrentamientos del día actual
+                  fechaConsulta = date;
+                  url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&date=${fechaConsulta}`;
+                }
+              const options = {
+                method: 'GET',
+                headers: {
+                  'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
+                  'X-RapidAPI-Key': '71aabd654amsh246d1bc92892422p1dcdedjsnb909789c53e7'
+                }
+              };
+              const respuesta = await fetch(url, options);
+              const data = await respuesta.json();
+      
+              if (data.response.length !== 0) {
+                enfrentamientos.push(data.response);
+              }
+            }
+          }
+      
+          return enfrentamientos;
+        } catch (error) {
+          throw new Error(error.message);
+        }
+      }
         
 
         async function obtenerPronosticosPorId(listIdsDePartidosApiCulminados){
@@ -253,105 +260,124 @@ var enfrentamientosDeTodasLasCompActivas = [];
     
         
     // SE GUARDAN LOS ENFRENTAMIENTOS DE LAS COMPETENCIAS ACTIVAS, PROCESO DE TAREA PROGRAMADA TODOS LOS DIAS
-        const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
-            try {
-                var compActivas  = [];
-                enfrentamientosDeTodasLasCompActivas = [];
-                const connection = await getConnection();
-                let queryResult = await connection.query("SELECT idcompetition, name, anio FROM competitions");
-                queryResult.forEach((element,i) => {
-                    compActivas.push({id: element.idcompetition, anio: element.anio});
-                });
-
-                // SE OBTIENEN LOS ENFRENTAMIENTOS DESDE LA API DE LAS COMPETENCIAS ACTIVAS
-                const enfrentamientos = await obtenerEnfrentamientos(compActivas);
-
-
-                 // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
-                for (let index = 0; index < enfrentamientos.length; index++) {
-                enfrentamientos[index].forEach((element, i) => {
-                    let idEnfrentamiento = element.fixture.id;
-                    let fechaEnfrentamiento = element.fixture.date;
-                    let short = element.fixture.status.long;
-                    let idLiga = element.league.id;
-                    let nameLiga = element.league.name;
-                    let anioLiga = element.league.season;
-                    let round = element.league.round;
-                    let idLocal = element.teams.home.id;
-                    let nameLocal = element.teams.home.name;
-                    let logoLocal = element.teams.home.logo;
-                    let ganaLocal = element.teams.home.winner;
-                    let idVisit = element.teams.away.id;
-                    let nameVisit = element.teams.away.name;
-                    let logoVisit = element.teams.away.logo;
-                    let ganaVisit = element.teams.away.winner;
-                    let golLocal = element.goals.home;                 
-                    let golVisit = element.goals.away;
-                    let penalesLocal = element.score.penalty.home;
-                    let penalesVisit = element.score.penalty.away;
-                    let isModificado = null;
-                    let isComparado = null;
-                   // let partido = [idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado];
-                   let partido = [idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado];
-                    console.log('partido:', partido);
-                    enfrentamientosDeTodasLasCompActivas.push(partido);                  
-                });
-            }
-
-                // SE GUARDA EN BD TODOS LOS ENFRENTAMIENTOS
-                guardaPartido(enfrentamientosDeTodasLasCompActivas, connection); 
-                return res.json(resultGuardado);
-            } catch (error) {
-                res.status(500);
-                res.send(error.message);
-            }
-        };
-        
-        function obtenerEnfrentamientos(compActivas){
-            enfrentamientos = [];
-            return new Promise((resolve, reject) => {
-                compActivas.forEach(comp => {
-                    if(comp.id != undefined || comp.id || null){  
-                        const url = 'https://api-football-v1.p.rapidapi.com/v3/fixtures?league='+comp.id+'&season='+comp.anio;
-                            const options = {
-                                method: 'GET',
-                                headers: {
-                                    'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
-                                    'X-RapidAPI-Key': '71aabd654amsh246d1bc92892422p1dcdedjsnb909789c53e7'
-                                },
-                            };
-                            fetch(url, options).then((respuesta) => {
-                                return respuesta.json()}).then((data) => {
-                                    if(!data.response.length == 0){
-                                        enfrentamientos.push(data.response);  
-                                    }
-                                }).catch((error)=> res.json({message:error}));
-                        };        
-                });
-                setTimeout(() => {
-                resolve(enfrentamientos);
-                }, 3000)
-          })};
-
-        async function guardaPartido (enfrentamientosDeTodasLasCompActivas, connection) {
-            console.log(enfrentamientosDeTodasLasCompActivas);
-            //"INSERT IGNORE INTO": esto hará que se conserve el primer registro y se ignore cualquier otro repetido, dejando en cada caso el registro más viejo e ignorando todos los siguientes.
-
-            //var sql = "INSERT IGNORE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ? ON DUPLICATE KEY UPDATE (ganaLocal, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?,?,?,?,?,?,?,?)";
-            var sql = "REPLACE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?";
-            //var sql = "INSERT IGNORE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ? ON DUPLICATE KEY UPDATE (ganaLocal, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?,?,?,?,?,?,?,?)";
-            setTimeout(() => {
-                  const resultado = connection.query(sql, [enfrentamientosDeTodasLasCompActivas], function(error, results){
-                    if (error) {
-                        return error;
-                    } else {
-                        console.log('RESULTADO DE GUARDADO DE ENFRENTAMIENTOS', results);
-                        return results;
-                    }
-            }, 20000);
-            return;
+const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
+    try {
+      var compActivas = [];
+      enfrentamientosDeTodasLasCompActivas = [];
+      const connection = await getConnection();
+      let queryResult = await connection.query(
+        "SELECT idcompetition, name, anio FROM competitions"
+      );
+      queryResult.forEach((element, i) => {
+        compActivas.push({ id: element.idcompetition, anio: element.anio });
+      });
+  
+      // SE OBTIENEN LOS ENFRENTAMIENTOS DESDE LA API DE LAS COMPETENCIAS ACTIVAS
+      const enfrentamientos = await obtenerEnfrentamientos(compActivas);
+  
+      // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
+      for (let index = 0; index < enfrentamientos.length; index++) {
+        enfrentamientos[index].forEach((element, i) => {
+          let idEnfrentamiento = element.fixture.id;
+          let fechaEnfrentamiento = element.fixture.date;
+          let short = element.fixture.status.long;
+          let idLiga = element.league.id;
+          let nameLiga = element.league.name;
+          let anioLiga = element.league.season;
+          let round = element.league.round;
+          let idLocal = element.teams.home.id;
+          let nameLocal = element.teams.home.name;
+          let logoLocal = element.teams.home.logo;
+          let ganaLocal = element.teams.home.winner;
+          let idVisit = element.teams.away.id;
+          let nameVisit = element.teams.away.name;
+          let logoVisit = element.teams.away.logo;
+          let ganaVisit = element.teams.away.winner;
+          let golLocal = element.goals.home;
+          let golVisit = element.goals.away;
+          let penalesLocal = element.score.penalty.home;
+          let penalesVisit = element.score.penalty.away;
+          let isModificado = null;
+          let isComparado = null;
+          let partido = [
+            idEnfrentamiento,
+            fechaEnfrentamiento,
+            short,
+            idLiga,
+            nameLiga,
+            anioLiga,
+            round,
+            idLocal,
+            nameLocal,
+            logoLocal,
+            ganaLocal,
+            idVisit,
+            nameVisit,
+            logoVisit,
+            ganaVisit,
+            golLocal,
+            golVisit,
+            penalesLocal,
+            penalesVisit,
+            isModificado,
+            isComparado,
+          ];
+          console.log("partido:", partido);
+          enfrentamientosDeTodasLasCompActivas.push(partido);
         });
-        }   
+      }
+  
+      // SE GUARDA EN BD TODOS LOS ENFRENTAMIENTOS
+      await guardaPartido(enfrentamientosDeTodasLasCompActivas, connection);
+      return res.sendStatus(200);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send(error.message);
+    }
+  };
+  
+  async function obtenerEnfrentamientos(compActivas) {
+    const enfrentamientos = [];
+    const urlBase = 'https://api-football-v1.p.rapidapi.com/v3/fixtures';
+    const headers = {
+      'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
+      'X-RapidAPI-Key': '71aabd654amsh246d1bc92892422p1dcdedjsnb909789c53e7'
+    };
+  
+    const promesas = compActivas.map(comp => {
+      if (comp.id) {
+        const url = `${urlBase}?league=${comp.id}&season=${comp.anio}`;
+        const options = { method: 'GET', headers };
+  
+        return fetch(url, options)
+          .then(respuesta => respuesta.json())
+          .then(data => {
+            if (data.response.length) {
+              enfrentamientos.push(data.response);
+            }
+          })
+          .catch(error => console.error(error));
+      }
+    });
+  
+    await Promise.all(promesas);
+    return enfrentamientos;
+  }
+
+  async function guardaPartido (enfrentamientosDeTodasLasCompActivas, connection) {
+    console.log(enfrentamientosDeTodasLasCompActivas);
+
+    const sql = "REPLACE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?";
+    
+    try {
+        const resultado = await connection.query(sql, [enfrentamientosDeTodasLasCompActivas]);
+        console.log('RESULTADO DE GUARDADO DE ENFRENTAMIENTOS', resultado);
+        return resultado;
+    } catch (error) {
+        console.log('ERROR EN GUARDADO DE ENFRENTAMIENTOS', error);
+        throw error;
+    }
+}
 
 
         const addPronostico = async (req, res) => {
