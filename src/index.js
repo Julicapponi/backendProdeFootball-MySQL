@@ -4,13 +4,22 @@ import {methods} from "./controllers/enfrentamientos.controller.js";
 
 const main = () => {
     app.listen(app.get("port"), () =>{
-        console.log(`Server on port ${app.get("port")}`);
+        console.log(`Server in host ${app.get("host")} on port ${app.get("port")} `);
     });
 
     app.get('/', (req, res) => {
         res.send('hello World!');
     })
-   
+    
+    // dejarlo sino en el server devuelve este error 404, si no encuentra nada devuelve 204.
+    app.use((req, res, next) => {
+        if (req.url === '/favicon.ico') {
+          res.status(204).end();
+        } else {
+          next();
+        }
+    });
+
 /*
 
         //methods.saveEnfrentamientosCompetenciasActivas();
