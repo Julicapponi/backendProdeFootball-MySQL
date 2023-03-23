@@ -9,9 +9,9 @@ import groupsRoutes from "./routes/groups.routes.js";
 const app = express();
 
 // Settings
-app.set("port", process.env.PORT );
-//app.set("port", process.env.PORT || process.env.PORT_HEROKU || 80);
-app.set("host", 'localhost');
+//app.set("port", process.env.PORT );
+app.set("port", process.env.PORT || 5000);
+//app.set("host", 'localhost');
 // app.set("host", '0.0.0.0'); NO PUSHEAR CON LOCAL HOST A HEROKU, PERO SI CON 0.0.0.0
 // Middlewares
 app.use(morgan("dev"));
