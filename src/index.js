@@ -4,8 +4,12 @@ import {methods} from "./controllers/enfrentamientos.controller.js";
 
 const main = () => {
     app.listen(app.get("port"), () =>{
-        console.log(`Server on port ${app.get("port")}}`);
+        console.log(`Server on port ${app.get("port")}`);
     });
+
+    app.get('/', (req, res) => {
+        res.send('hello World!');
+    })
    
 /*
 
