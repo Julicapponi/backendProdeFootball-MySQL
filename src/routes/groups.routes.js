@@ -4,6 +4,7 @@ const router = Router();
 
 // Competiciones
 router.post("/crear/", groupsController.addGroup); 
+router.get("/reporte/", groupsController.obtenerReporteAciertos);
 router.get("/:id", groupsController.gruposPorUser);
 router.post("/postular/user/", groupsController.addPostularGroup);
 router.post("/agregar/user/", groupsController.addUserGroup);

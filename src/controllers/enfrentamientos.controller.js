@@ -127,15 +127,15 @@ var enfrentamientosDeTodasLasCompActivas = [];
           for (const comp of compActivas) {
             if (comp.id) {
                 let url, fechaConsulta;
-                if (now.getHours() < 5) {
+              //  if (now.getHours() < 5) {
                   // Si la hora actual está entre las 00:00 y las 03:00, obtiene los enfrentamientos del día anterior y el actual
                   const fechaAnterior = new Date(now.getTime() + timeZoneOffset * 60 * 1000 - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                  url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&from=${fechaAnterior}&to=${date}`;
-                } else {
+                  url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&from=${'2023-03-16'}&to=${date}`;
+                /*} else {
                   // Si la hora actual es posterior a las 03:00, solo obtiene los enfrentamientos del día actual
                   fechaConsulta = date;
                   url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&date=${fechaConsulta}`;
-                }
+                }*/
               const options = {
                 method: 'GET',
                 headers: {
@@ -382,15 +382,16 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
 
         const addPronostico = async (req, res) => {
             try {
-                const { golesLocal, golesVisit, idUser, idEnfrentamiento} = req.body;
+                const { golesLocal, golesVisit, idUser, idEnfrentamiento, idLiga} = req.body;
                 console.log('Se Pronostica el enfrentamiento con id: '+idEnfrentamiento+' el usuario con id: ', idUser);
                 console.log('goles local: '+ golesLocal + ' goles visitante');
-                if (idUser === undefined || idEnfrentamiento === undefined) {
-                    res.status(400).json({ message: "Bad Request. Please fill all field." });
+                if (idUser === undefined || golesLocal === undefined || golesVisit === undefined || idEnfrentamiento === undefined || idLiga === undefined) {
+                    res.status(400).json({ message: "No se pudo crear el pronostico, cierra sesion y reintenta"});
+                    res.send("No se pudo crear el pronostico, cierra sesion y reintenta");
                 }
                 const connection = await getConnection();
                 // inserta un nuevo pronostico
-                const sqlInsertPronostico = `INSERT INTO pronosticos (golesLocalPronosticado, golesVisitPronosticado, idUser, idEnfrentamiento) VALUES ('${golesLocal}','${golesVisit}','${idUser}','${idEnfrentamiento}') ON DUPLICATE KEY UPDATE golesLocalPronosticado=VALUES(golesLocalPronosticado), golesVisitPronosticado=VALUES(golesVisitPronosticado)`;
+                const sqlInsertPronostico = `INSERT INTO pronosticos (golesLocalPronosticado, golesVisitPronosticado, idUser, idLiga, idEnfrentamiento, idCompetencia) VALUES ('${golesLocal}','${golesVisit}','${idUser}','${idLiga}','${idEnfrentamiento}','${idLiga}') ON DUPLICATE KEY UPDATE golesLocalPronosticado=VALUES(golesLocalPronosticado), golesVisitPronosticado=VALUES(golesVisitPronosticado)`;
                 await connection.query(sqlInsertPronostico);
                 res.status(200).json({cargoPronostico: true, message: "Pronostico agregado con exito"});
             } catch (error) {

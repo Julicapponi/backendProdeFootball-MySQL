@@ -282,6 +282,27 @@ const obtenerPuntajesPorFechaPorUser = async (req, res) => {
     }
 };
 
+const obtenerReporteAciertos = async (req, res) => {
+    try {
+        const connection = await getConnection();
+        const obtenerReporte = `
+        SELECT g.idgrupo, g.nameGrupo, 
+       SUM(CASE WHEN p.puntosSumados = 3 THEN 1 ELSE 0 END) as aciertos_exactos,
+       SUM(CASE WHEN p.puntosSumados = 1 THEN 1 ELSE 0 END) as aciertos_no_exactos,
+       SUM(CASE WHEN p.puntosSumados = 0 THEN 1 ELSE 0 END) as no_aciertos
+        FROM grupos g
+        JOIN miembros_grupo mg ON g.idgrupo = mg.group_id
+        JOIN pronosticos pr ON pr.idUser = mg.user_id
+        JOIN puntajes p ON p.id_Pronostico = pr.idpronostico
+        GROUP BY g.idgrupo, g.nameGrupo
+        ORDER BY aciertos_exactos DESC, aciertos_no_exactos DESC, no_aciertos DESC`;
+        const result = await connection.query(obtenerReporte);
+        return res.status(200).json(result);
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+};
 
 
 
@@ -302,5 +323,6 @@ export const methods = {
     deleteGroup,
     editGroup,
     obtenerPuntajesGeneralPorUser,
-    obtenerPuntajesPorFechaPorUser
+    obtenerPuntajesPorFechaPorUser,
+    obtenerReporteAciertos
 };
