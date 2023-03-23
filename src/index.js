@@ -23,15 +23,15 @@ const main = () => {
 /*
 
         //methods.saveEnfrentamientosCompetenciasActivas();
-   
+   */
     
-/*
+
 
     cron.schedule("* * * * * *", () => {
         console.log("La tarea programada cada 1 segundo se ha ejecutado");
 
     });
-
+/*
     cron.schedule('0 0 * * *', () => {
         console.log("La tarea programada de las 00:00 horas se ha ejecutado");
     });
