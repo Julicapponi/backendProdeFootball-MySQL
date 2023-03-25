@@ -10,8 +10,10 @@ const app = express();
 
 // Settings
 app.set("port", process.env.PORT || 5000);
-//app.set('host', process.env.HOST || 'localhost');
-app.set('host', process.env.HOST_PROD || 'localhost');
+app.set('host', 'localhost');
+//app.set('host', process.env.HOST_PROD || 'localhost');
+
+
 // Middlewares
 app.use(morgan("dev"));
 app.use(express.json());
