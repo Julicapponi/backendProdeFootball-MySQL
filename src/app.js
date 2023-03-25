@@ -9,9 +9,8 @@ import groupsRoutes from "./routes/groups.routes.js";
 const app = express();
 
 // Settings
-app.set("port", process.env.PORT || 5000);
-app.set('host', 'localhost');
-//app.set('host', process.env.HOST_PROD || 'localhost');
+app.set("port", process.env.PORT);
+app.set('host', process.env.HOST );
 
 
 // Middlewares
