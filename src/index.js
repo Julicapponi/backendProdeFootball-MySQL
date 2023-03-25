@@ -7,7 +7,7 @@ const main = async () => {
     app.listen(app.get("port"), () =>{
         console.log(`Server in host ${app.get("host")} o on port ${app.get("port")} `);
     });
-
+      
     app.get('/', (req, res) => {
         res.send('hello World!');
     })
