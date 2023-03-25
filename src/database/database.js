@@ -10,7 +10,8 @@ const connection = mysql.createPool({
     host: config.host, 
     database: config.database, 
     user: config.user, 
-    password: config.password 
+    password: config.password,
+    port: config.port
 });
 
 
