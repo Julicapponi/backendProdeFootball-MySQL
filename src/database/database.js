@@ -8,9 +8,13 @@ const connection = mysql.createPool({
     database: config.database, 
     user: config.user, 
     password: config.password,
-    rowsAsArray: false
+    rowsAsArray: false,
+    connectTimeout: 30000, // Tiempo de espera en milisegundos
+    acquireTimeout: 30000 // Tiempo de espera en milisegundos
 });
+
 
 export const getConnection = () => {
 return connection;
 };
+
