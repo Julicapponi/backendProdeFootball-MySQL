@@ -205,8 +205,9 @@ const updateCompetition = async (req, res) => {
 const getCompetitionsActivas = async (req, res) => {
     try {
         const connection = await getConnection();
-        const result = await connection.query("SELECT idcompetition, name, anio FROM competitions");
+        const [result] = await connection.query("SELECT idcompetition, name, anio FROM competitions");
         console.log(result);
+        connection.end();
         return res.status(200).json(result);
     } catch (error) {
         res.status(500);

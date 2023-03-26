@@ -7,10 +7,9 @@ const connection = mysql.createPool({
     host: config.host, 
     database: config.database, 
     user: config.user, 
-    password: config.password
+    password: config.password,
+    rowsAsArray: false
 });
-
-
 
 export const getConnection = () => {
 return connection;
