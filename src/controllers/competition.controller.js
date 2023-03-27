@@ -204,7 +204,9 @@ const updateCompetition = async (req, res) => {
 
 const getCompetitionsActivas = async (req, res) => {
     try {
+        console.log('entro a competencias activas');
         const connection = await getConnection();
+        console.log('paso la conexion');
         const [result] = await connection.query("SELECT idcompetition, name, anio FROM competitions");
         console.log(result);
         connection.end();
