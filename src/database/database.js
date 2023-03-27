@@ -4,6 +4,7 @@ export let connection;
 
 try {
   connection = mysql.createPool({
+    
     connectionLimit: 1000,
     multipleStatements: true,
     host: config.host, 
@@ -13,6 +14,10 @@ try {
     rowsAsArray: false,
     ssl: false,
     acquireTimeout:6000000
+  });
+  connection.on('error', (err) => {
+    console.error('Database connection error:', err);
+    connection.destroy();
   });
   console.log("Connection to database successful.");
 } catch (error) {
