@@ -11,6 +11,7 @@ try {
     user: config.user, 
     password: config.password,
     rowsAsArray: false,
+    ssl: false
   });
   console.log("Connection to database successful.");
 } catch (error) {
