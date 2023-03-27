@@ -3,7 +3,7 @@ import config from "./../config.js";
 export let connection;
 
 try {
-  connection = mysql.createConnection({
+  connection = mysql.createPool({
     connectionLimit: 1000,
     multipleStatements: true,
     host: config.host, 
@@ -11,8 +11,11 @@ try {
     user: config.user, 
     password: config.password,
     rowsAsArray: false,
-    ssl: false,
-    acquireTimeout:6000000
+    stream: function(opts) {
+        var socket = net.connect(opts.config.port, opts.config.host);
+        socket.setKeepAlive(true);
+        return socket;
+      }
   });
   console.log("Connection to database successful.");
 } catch (error) {
