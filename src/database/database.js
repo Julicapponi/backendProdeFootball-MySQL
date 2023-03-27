@@ -11,7 +11,8 @@ try {
     user: config.user, 
     password: config.password,
     rowsAsArray: false,
-    ssl: false
+    ssl: false,
+    acquireTimeout:6000000
   });
   console.log("Connection to database successful.");
 } catch (error) {
