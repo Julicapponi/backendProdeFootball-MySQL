@@ -9,8 +9,6 @@ const connection = mysql.createPool({
     user: config.user, 
     password: config.password,
     rowsAsArray: false,
-    connectTimeout: 30000, // Tiempo de espera en milisegundos
-    acquireTimeout: 30000 // Tiempo de espera en milisegundos
 });
 
 

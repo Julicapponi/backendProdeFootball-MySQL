@@ -211,6 +211,7 @@ const getCompetitionsActivas = async (req, res) => {
         return res.status(200).json(result);
     } catch (error) {
         res.status(500);
+        console.log(error.message);
         return res.send(error.message);
     }
 };
