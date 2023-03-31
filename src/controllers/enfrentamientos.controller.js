@@ -51,7 +51,7 @@ var enfrentamientosDeTodasLasCompActivas = [];
                               } else if(partidoPronosticado.golesVisitPronosticado > partidoPronosticado.golesLocalPronosticado &&  partidoApi.goals.away > partidoApi.goals.home) {
                                 //GANA 1 PUNTO
                                 puntos = 1;
-                              } else if(partidoPronosticado.golesLocalPronosticado !== partidoApi.goals.home && partidoPronosticado.golesVisitPronosticado !== partidoApi.goals.away && partidoApi.goals.home === partidoApi.goals.away){
+                              } else if(partidoPronosticado.golesLocalPronosticado !== partidoApi.goals.home && partidoPronosticado.golesVisitPronosticado !== partidoApi.goals.away && partidoApi.goals.home === partidoApi.goals.away && partidoPronosticado.golesLocalPronosticado === partidoPronosticado.golesVisitPronosticado){
                                 //GANA 1 PUNTO
                                 puntos = 1;
                               } else {
