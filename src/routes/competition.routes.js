@@ -3,16 +3,14 @@ import { methods as competitionController } from "./../controllers/competition.c
 import fetch from "node-fetch";
 const router = Router();
 
-// Competiciones
-
-//Lista de todas las competiciones
+//Rutas competiciones
 router.get("/", competitionController.getCompetitions);
 router.get("/:id", competitionController.getCompetition);  
 router.get("/list/activas/", competitionController.getCompetitionsActivas); 
 
-// add y delete es sinonimo de activar y desactivar competencia activa/visible para el usuario.
+// agregar y borrar es sinonimo de activar y desactivar | Competencia activa/visible para el usuario.
 router.post("/", competitionController.addCompetition);
-router.delete("/:id", competitionController.deleteCompetition);  
+router.delete("/:idcompetition", competitionController.deleteCompetition);  
 router.put("/:id", competitionController.updateCompetition); 
 
 

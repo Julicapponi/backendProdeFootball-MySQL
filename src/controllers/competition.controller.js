@@ -1,7 +1,8 @@
 import { getConnection } from "../database/database.js";
 import fetch from "node-fetch";
+import CompModel from "../models/Competition.js";
 
-
+//OBTENER TODAS LAS COMPETENCIAS DEL MUNDO
 const getCompetitions = async (req, res) => {
     const url = 'https://api-football-v1.p.rapidapi.com/v3/leagues';
     const options = {
@@ -20,20 +21,34 @@ const getCompetition = async (req, res) => {
 
 };
 
+// AGREGAR O ACTIVAR UNA COMPETENCIA
 const addCompetition = async (req, res) => {
     try {
-        const {id, name, anio} = req.body;
-        console.log(id, name, anio);
-        if (id === undefined || name === undefined || anio === undefined) {
-            res.status(400).json({ message: "Faltan datos" });
+        const { idcompetition, name, anio } = req.body;
+        const newComp = new CompModel(idcompetition, name, anio);   
+        if (newComp.idcompetition === undefined || newComp.name === undefined || newComp.anio === undefined) {
+            return res.status(400).json({ message: "Faltan datos", checkbox: false });
+        } 
+        
+        const currentYear = new Date().getFullYear();
+        /** Validación: Si no es anio actual, ni anterior ni posterior al actual --> error
+        Esto sucede porque a la hora de buscar la competencia en la api se la busca por el anio
+        y existen ligas que se desarrollan en 2 años. Ej: comienza agosto 2022 culmina agosto 2023 pero se la busca por 2022
+        O puede que se busquen competencias del anio siguiente y aun no ha comenzado pero si estan cargadas.
+         */
+        if (!(currentYear === newComp.anio || currentYear - 1 === newComp.anio || currentYear + 1 === newComp.anio)) {
+            return res.status(400).json({ message: "Error, puede que su liga no sea actual o reciente. Verifique", checkbox: false});
         }
         const connection = await getConnection();
-        const sqlInsertUser = `INSERT INTO competitions ( idcompetition, name, anio) VALUES ('${id}','${name}','${anio}')`;
-        //valido si existe en bd el correo ingresado
-        const resultExistCompetitionInBD = await connection.query("SELECT * FROM competitions WHERE idcompetition = ?", id);
+        //valido si existe en bd alguna competencia
+        const resultExistCompetitionInBD = await connection.query("SELECT * FROM competitions WHERE idcompetition = ?", newComp.idcompetition);
+    
         if(resultExistCompetitionInBD.length == 0){
-            await connection.query(sqlInsertUser);
-            saveEnfrentamientosCompetenciaRecienActivada(id, anio);
+            //Inserto competencia
+            const sqlInsertCompetition = "INSERT INTO competitions SET ?";
+            await connection.query(sqlInsertCompetition, newComp);
+            //Cargo/guardo enfrentamientos de la competencia
+            saveEnfrentamientosCompetenciaRecienActivada(newComp.idcompetition, newComp.anio);
             setTimeout(() => {
                 return res.status(200).json({message: "Competencia activada con exito, ahora los usuarios podrán visualizarla", checkbox: true});
             }, 8000)
@@ -52,9 +67,11 @@ async function saveEnfrentamientosCompetenciaRecienActivada(id, anio) {
         let enfrentamientosDeLaCompetenciaRecienActivada = [];
         const connection = await getConnection();
         compRecienActiva.push({id: id, anio: anio});
+        //Obtengo enfrentamientos de la competencia desde la api
         let enfrentamientos = await obtenerEnfrentamientos(compRecienActiva);
          // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
         for (let index = 0; index < enfrentamientos.length; index++) {
+        // Se arma cada enfrentamiento con datos necesarios unicamente.
         enfrentamientos[index].forEach((element, i) => {
             let idEnfrentamiento = element.fixture.id;
             let fechaEnfrentamiento = element.fixture.date;
@@ -77,18 +94,18 @@ async function saveEnfrentamientosCompetenciaRecienActivada(id, anio) {
             let penalesVisit = element.score.penalty.away;
             let isModificado = null;
             let isComparado = null;
-           // let partido = [idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado];
-           let partido = [idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado];
+            let partido = [idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado];
             console.log('partido:', partido);
+            // Agrego cada partido a una lista
             enfrentamientosDeLaCompetenciaRecienActivada.push(partido);                  
         });
     }
-        // SE GUARDA EN BD TODOS LOS ENFRENTAMIENTOS DE LA COMPETENCIA RECIEN ACTIVADA
+        // Guarda los enfrentamientos en bd
         let resultado = guardaPartido(enfrentamientosDeLaCompetenciaRecienActivada, connection); 
         if(resultado == true){
             return res.status(200).json({message: "Competencia activada con exito, ahora los usuarios podrán visualizarla", checkbox: true});
         } else {
-
+            return res.status(400).json({message: "Ocurrió un error al intentar guardar los enfrentamientos de la competencia", checkbox: false});
         }
       
     } catch (error) {
@@ -122,6 +139,7 @@ function obtenerEnfrentamientos(compRecienActiva){
         }, 3000)
   })};
 
+  //Inserto la lista de enfrentamientos
 async function guardaPartido (enfrentamientosDeLaCompetenciaRecienActivada, connection) {
     console.log(enfrentamientosDeLaCompetenciaRecienActivada);
     var sql = "INSERT INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?";
@@ -137,88 +155,54 @@ async function guardaPartido (enfrentamientosDeLaCompetenciaRecienActivada, conn
 });
 }   
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//DESACTIVAR ESTADO COMPETENCIA
 const deleteCompetition = async (req, res) => {
     try {
-        const { id } = req.params;
+        const competition = new CompModel(req.params.idcompetition);
         const connection = await getConnection();
-        const deleteCompetition = await connection.query("DELETE FROM competitions WHERE idcompetition = ?", id);
-        const deleteEnfrentamientos = await connection.query("DELETE FROM enfrentamientos WHERE idLiga = ?", id);
-        res.status(200).json({ message: "Competencia desactivada, los usuarios no podrán visualizarla"});
+        const deleteCompetitionResult = await connection.query("DELETE FROM competitions WHERE idcompetition = ?", competition.idcompetition);
+        //Borro los enfrentamientos de la competencia si elimino exitosamente la competencia.
+        if (deleteCompetitionResult.affectedRows === 1) {
+            const deleteEnfrentamientos = await connection.query("DELETE FROM enfrentamientos WHERE idLiga = ?", competition.idcompetition);
+            res.status(200).json({ message: "Competencia desactivada, los usuarios no podrán visualizarla"});
+          } else {
+            res.status(400).json({ message: "No se encontró la competencia a eliminar." });
+        }
     } catch (error) {
         res.status(500);
         res.send(error.message);
     }
 };
 
-
+//ACTUALIZAR NOMBRE COMPETENCIA
 const updateCompetition = async (req, res) => {
     try {
-        const { id } = req.params;
-        const {idcompetition, name, anio} = req.body;
-        if (name === undefined) {
-            res.status(400).json({ message: "Bad Request. Please fill all field." });
-        }
-        const competicion = {idcompetition, name, anio};
+        const { idcompetition, name, anio } = req.body;
+        const comp = new CompModel(idcompetition, name, anio);   
+        if (comp.name === undefined ) {
+            return res.status(400).json({ message: "Hubo un error, cierre sesión y modifique su competencia nuevamente"});
+        } 
         const connection = await getConnection();
-        const result = await connection.query("UPDATE competitions SET ? WHERE idcompetition = ?",[competicion,idcompetition]);
-        res.json({ message: "Nombre de competencia modificada con exito"});
+        const result = await connection.query("UPDATE competitions SET ? WHERE idcompetition = ?",[comp,idcompetition]);
+        if (result.affectedRows === 1) {
+            res.status(200).json({ message: "Nombre de competencia modificada con exito"});
+          } else {
+            res.status(400).json({ message: "Hubo un error con la modificación de la competencia" });
+        }
     } catch (error) {
         res.status(500);
         res.send(error.message);
     }
 };
 
+//OBTENER COMPETENCIAS DADAS DE ALTA O ACTIVAS
 const getCompetitionsActivas = async (req, res) => {
     try {
-        console.log('entro a competencias activas');
         const connection = await getConnection();
-        console.log('paso la conexion');
-        let result;
-        try{
-            [result] = await connection.query("SELECT idcompetition, name, anio FROM competitions");
-        } catch (error) {
-            console.log(error.message);
-            console.log(result);
-        }
-        console.log(result);
-        connection.end();
-        return res.status(200).json(result);
+        const resultListComp = await connection.query("SELECT idcompetition, name, anio FROM competitions");
+        return res.status(200).json(resultListComp);
     } catch (error) {
-        res.status(500);
+        res.status(400);
         console.log(error.message);
         return res.send(error.message);
     }

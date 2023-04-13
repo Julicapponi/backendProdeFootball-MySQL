@@ -1,6 +1,6 @@
 import { getConnection } from "../database/database.js";
 import * as bcryptjs from 'bcryptjs';
-
+import GrupoModel from "../models/Grupo.js"
 
 
 const addGroup = async (req, res) => {
@@ -23,7 +23,7 @@ const addGroup = async (req, res) => {
             if (error) {
                 throw error;
             } else {
-                // Inserta el usuario que creó el grupo al grupo creado
+                // Inserta el usuario que creó el grupo al grupo (accion default)
                 const sqlListUsersGroup = `INSERT INTO miembros_grupo(user_id, group_id) values ('${idUserGreaGrupo}','${resultGrupo.insertId}');`;
                 await connection.query(sqlListUsersGroup, (error, resp) => {
                     if (error) {
@@ -158,7 +158,7 @@ const listUsersGroup = async (req, res) => {
         const connection = await getConnection();
         // usuarios pertenenciente a x grupo
         const sqlListUsersGroup = `SELECT users.name FROM users JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id JOIN grupos ON grupos.idgrupo = miembros_grupo.group_id WHERE grupos.idgrupo = '${groupId}'`;
-        const result = await connection.query(sqlListUsersGroup);
+        const [result] = await connection.query(sqlListUsersGroup);
         return res.status(200).json(result);
     } catch (error) {
         res.status(500);

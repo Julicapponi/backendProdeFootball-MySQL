@@ -3,7 +3,7 @@ import { methods as userController } from "./../controllers/user.controller.js";
 
 const router = Router();
 
-// usuarios
+// rutas usuarios
 router.get("/", userController.getUsuarios);
 router.get("/:id", userController.getUsuario);  
 router.post("/", userController.addUsuario); 

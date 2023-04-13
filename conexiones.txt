@@ -1,0 +1,16 @@
+//HOST EN RENDER
+HOST=https://backendprodefootball-mysql.onrender.com
+
+//localhost
+HOST_BD=localhost
+DATABASE=prode
+USER=root
+PASSWORD=root123
+PORT=5000
+
+
+//Base de datos en planetScale server
+HOST_BD=aws-sa-east-1.connect.psdb.cloud
+DATABASE=prode
+USER=1ecsjlu5kfh30x77yj04
+PASSWORD=pscale_pw_xDjNlCXtnljZk2sil3uK7QuFr8jHHnDMJfr7RhwyhXc

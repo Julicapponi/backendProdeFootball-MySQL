@@ -1,32 +1,17 @@
-import mysql from "mysql2/promise";
+//import mysql from "mysql2/promise";
+import mysql from "promise-mysql";
 import config from "./../config.js";
-export let connection;
 
-try {
-  connection = mysql.createPool({
-    connectionLimit: 1000,
-    multipleStatements: true,
-    host: config.host, 
-    database: config.database, 
-    user: config.user, 
-    password: config.password,
-    rowsAsArray: false,
-    stream: function(opts) {
-        var socket = net.connect(opts.config.port, opts.config.host);
-        socket.setKeepAlive(true);
-        return socket;
-      }
-  });
-  console.log("Connection to database successful.");
-} catch (error) {
-  console.error("Error connecting to database: ", error.message);
-}
+const connection = mysql.createPool({
+        
+  multipleStatements: true,
+  connectionLimit: 100,
+  host: config.host, 
+  database: config.database, 
+  user: config.user, 
+  password: config.password 
+});
 
 export const getConnection = () => {
-  if (!connection) {
-    console.error("No connection to database.");
-    console.log(connection.error);
-    console.log(connection);
-  }
-  return connection;
+return connection;
 };

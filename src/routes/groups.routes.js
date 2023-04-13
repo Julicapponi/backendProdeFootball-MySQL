@@ -2,7 +2,7 @@ import { Router } from "express";
 import { methods as groupsController } from "./../controllers/groups.controller.js";
 const router = Router();
 
-// Competiciones
+// rutas grupo
 router.post("/crear/", groupsController.addGroup); 
 router.get("/reporte/", groupsController.obtenerReporteAciertos);
 router.get("/:id", groupsController.gruposPorUser);

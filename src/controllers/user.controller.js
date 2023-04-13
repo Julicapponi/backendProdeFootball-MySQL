@@ -1,8 +1,10 @@
 import { getConnection } from "../database/database.js";
 import * as bcryptjs from 'bcryptjs';
 import nodemailer from 'nodemailer';
+import UserModel from "../models/User.js"
 
 const loginUsuario = async (req, res) => {
+
     const { username, password } = req.body;
   
     if (!username || !password) {
@@ -39,13 +41,13 @@ const getUsuarios = async (req, res) => {
     try {
         const connection = await getConnection();
         const result = await connection.query("SELECT iduser, name, userName, email, password, admin FROM users");
-        console.log(result);
-        res.json(result);
+        const usuarios = result.map(row => new UserModel(row.iduser, row.name, row.userName, row.email, row.password, row.admin));
+        console.log(usuarios);
+        res.json(usuarios);
     } catch (error) {
         res.status(500);
         res.send(error.message);
     }
-  
 };
 
 const getUsuario = async (req, res) => {
@@ -107,11 +109,11 @@ const addUsuario = async (req, res) => {
 
         // Verificar si el email o el username ya existen en la base de datos
         const sqlCheckUser = `SELECT * FROM users WHERE email = ? OR username = ?`;
-        const resultExistUserInBD = await connection.query(sqlCheckUser, [email, username]);
+        const [resultExistUserInBD] = await connection.query(sqlCheckUser, [email, username]);
 
         if (resultExistUserInBD.length > 0) {
             if (resultExistUserInBD[0].username === username) {
-                res.status(400).json({ message: "Este nombre de usuario ya está registrado" });
+                res.status(400).json({ message: "Este usuario ya está registrado, pruebe con otro" });
             } else {
                 res.status(400).json({ message: "Este correo electrónico o usuario ya está registrado" });
             }

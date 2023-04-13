@@ -1,6 +1,6 @@
 import { getConnection } from "../database/database.js";
 import fetch from "node-fetch";
-
+import EnfrentModel from "../models/Enfrentamiento.js";
 import {methods as competitionController} from "./../controllers/competition.controller.js";
 var enfrentamientos = [];
 var enfrentamientosDeTodasLasCompActivas = [];
