@@ -1,10 +1,9 @@
 import { getConnection } from "../database/database.js";
 import fetch from "node-fetch";
-import EnfrentModel from "../models/Enfrentamiento.js";
-import {methods as competitionController} from "./../controllers/competition.controller.js";
+
 var enfrentamientos = [];
 var enfrentamientosDeTodasLasCompActivas = [];
-
+var enfrentamientosDeLaComp = [];
     const calcularPuntajes = async (req, res) => {
         try {
             var compActivas  = [];
@@ -258,6 +257,75 @@ var enfrentamientosDeTodasLasCompActivas = [];
         }
     }
     
+       // SE GUARDAN LOS ENFRENTAMIENTOS DE X COMPETENCIA EN ESPECIFICO
+async function saveEnfrentamientosCompetencia(idCompetencia){
+  try {
+    enfrentamientosDeLaComp = [];
+    const connection = await getConnection();
+
+    // SE OBTIENEN LOS ENFRENTAMIENTOS DESDE LA API 
+    const enfrentamientos = await obtenerEnfrentamientos(idCompetencia);
+
+    // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
+    for (let index = 0; index < enfrentamientos.length; index++) {
+      enfrentamientos[index].forEach((element, i) => {
+        let idEnfrentamiento = element.fixture.id;
+        let fechaEnfrentamiento = element.fixture.date;
+        let short = element.fixture.status.long;
+        let idLiga = element.league.id;
+        let nameLiga = element.league.name;
+        let anioLiga = element.league.season;
+        let round = element.league.round;
+        let idLocal = element.teams.home.id;
+        let nameLocal = element.teams.home.name;
+        let logoLocal = element.teams.home.logo;
+        let ganaLocal = element.teams.home.winner;
+        let idVisit = element.teams.away.id;
+        let nameVisit = element.teams.away.name;
+        let logoVisit = element.teams.away.logo;
+        let ganaVisit = element.teams.away.winner;
+        let golLocal = element.goals.home;
+        let golVisit = element.goals.away;
+        let penalesLocal = element.score.penalty.home;
+        let penalesVisit = element.score.penalty.away;
+        let isModificado = null;
+        let isComparado = null;
+        let partido = [
+          idEnfrentamiento,
+          fechaEnfrentamiento,
+          short,
+          idLiga,
+          nameLiga,
+          anioLiga,
+          round,
+          idLocal,
+          nameLocal,
+          logoLocal,
+          ganaLocal,
+          idVisit,
+          nameVisit,
+          logoVisit,
+          ganaVisit,
+          golLocal,
+          golVisit,
+          penalesLocal,
+          penalesVisit,
+          isModificado,
+          isComparado,
+        ];
+        console.log("partido:", partido);
+        enfrentamientosDeLaComp.push(partido);
+      });
+    }
+
+    // SE GUARDA EN BD TODOS LOS ENFRENTAMIENTOS
+    await guardaPartido(enfrentamientosDeLaComp, connection);
+    return Promise.resolve("Operación exitosa");
+  } catch (error) {
+    console.error(error);
+    return Promise.reject(error.message);
+  }
+};
         
     // SE GUARDAN LOS ENFRENTAMIENTOS DE LAS COMPETENCIAS ACTIVAS, PROCESO DE TAREA PROGRAMADA TODOS LOS DIAS
 const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
@@ -274,7 +342,7 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
   
       // SE OBTIENEN LOS ENFRENTAMIENTOS DESDE LA API DE LAS COMPETENCIAS ACTIVAS
       const enfrentamientos = await obtenerEnfrentamientos(compActivas);
-  
+      console.log(enfrentamientos);
       // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
       for (let index = 0; index < enfrentamientos.length; index++) {
         enfrentamientos[index].forEach((element, i) => {
@@ -335,6 +403,8 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
       res.status(500).send(error.message);
     }
   };
+
+
   
   async function obtenerEnfrentamientos(compActivas) {
     const enfrentamientos = [];
@@ -343,25 +413,52 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
       'X-RapidAPI-Host': 'api-football-v1.p.rapidapi.com',
       'X-RapidAPI-Key': '71aabd654amsh246d1bc92892422p1dcdedjsnb909789c53e7'
     };
-  
-    const promesas = compActivas.map(comp => {
-      if (comp.id) {
-        const url = `${urlBase}?league=${comp.id}&season=${comp.anio}`;
-        const options = { method: 'GET', headers };
-  
-        return fetch(url, options)
-          .then(respuesta => respuesta.json())
-          .then(data => {
-            if (data.response.length) {
-              enfrentamientos.push(data.response);
-            }
-          })
-          .catch(error => console.error(error));
+    
+    if (Array.isArray(compActivas)) {
+      const promesas = compActivas.map(comp => {
+        if (comp.id) {
+          const url = `${urlBase}?league=${comp.id}&season=${comp.anio}`;
+          const options = { method: 'GET', headers };
+
+          return fetch(url, options)
+            .then(respuesta => respuesta.json())
+            .then(data => {
+              if (data.response.length) {
+                enfrentamientos.push(data.response);
+              }
+            })
+            .catch(error => console.error(error));
+        }
+      });
+
+      await Promise.all(promesas); // Esperar a que todas las promesas se resuelvan
+      return enfrentamientos;
+      } else if (typeof compActivas === 'string') {
+        return new Promise((resolve, reject) => {
+          const fechaActual = new Date();
+          const anioActual = fechaActual.getFullYear();
+          const enfrentamientos = [];
+      
+          if (compActivas) {
+            const url = `${urlBase}?league=${compActivas}&season=${anioActual}`;
+            const options = { method: 'GET', headers };
+      
+            fetch(url, options)
+              .then(respuesta => respuesta.json())
+              .then(data => {
+                if (data.response.length) {
+                  enfrentamientos.push(data.response);
+                }
+                resolve(enfrentamientos);
+              })
+              .catch(error => reject(error));
+          } else {
+            resolve(enfrentamientos);
+          }
+        });
+      } else {
+        // compActivas no es ni un array ni un string
       }
-    });
-  
-    await Promise.all(promesas);
-    return enfrentamientos;
   }
 
   async function guardaPartido (enfrentamientosDeTodasLasCompActivas, connection) {
@@ -370,9 +467,12 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
     const sql = "REPLACE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?";
     
     try {
-        const resultado = await connection.query(sql, [enfrentamientosDeTodasLasCompActivas]);
-        console.log('RESULTADO DE GUARDADO DE ENFRENTAMIENTOS', resultado);
-        return resultado;
+        if(enfrentamientosDeTodasLasCompActivas.length!=0){
+          const resultado = await connection.query(sql, [enfrentamientosDeTodasLasCompActivas]);
+          console.log('RESULTADO DE GUARDADO DE ENFRENTAMIENTOS', resultado);
+          return resultado;
+        }
+    return;
     } catch (error) {
         console.log('ERROR EN GUARDADO DE ENFRENTAMIENTOS', error);
         throw error;
@@ -441,7 +541,16 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
             return arrayEnfrentamientos;
            });
         }   
-       
+
+        async function borrarEnfrentamientosPorLiga(idComp){
+          try {
+            const connection = await getConnection();
+            const deleteEnfrentamientos = await connection.query("DELETE FROM enfrentamientos WHERE idLiga = ?", idComp);
+            return deleteEnfrentamientos;
+            } catch (error) {
+                return error;
+            }
+      }  
 export const methods = {
     addPronostico,
     getEnfrentamientosApi,
@@ -450,6 +559,8 @@ export const methods = {
     saveEnfrentamientosCompetenciasActivas,
     editEnfrentamiento,
     calcularPuntajes,
-    getPositionTablePorComp
+    getPositionTablePorComp,
+    saveEnfrentamientosCompetencia,
+    borrarEnfrentamientosPorLiga
 
 };

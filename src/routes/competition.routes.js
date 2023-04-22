@@ -4,15 +4,12 @@ import fetch from "node-fetch";
 const router = Router();
 
 //Rutas competiciones
-router.get("/", competitionController.getCompetitions);
-router.get("/:id", competitionController.getCompetition);  
-router.get("/list/activas/", competitionController.getCompetitionsActivas); 
-
-// agregar y borrar es sinonimo de activar y desactivar | Competencia activa/visible para el usuario.
+router.get("/", competitionController.getCompetitionsApi); 
+router.get("/list/altas/", competitionController.getCompetitionsAltasBD); 
 router.post("/", competitionController.addCompetition);
+router.get("/list/activas/", competitionController.getCompetitionsActivas); 
 router.delete("/:idcompetition", competitionController.deleteCompetition);  
 router.put("/:id", competitionController.updateCompetition); 
-
-
+router.put("/estado/:id", competitionController.estadoCompetition); 
 
 export default router;

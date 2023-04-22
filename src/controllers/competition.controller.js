@@ -1,9 +1,9 @@
 import { getConnection } from "../database/database.js";
 import fetch from "node-fetch";
 import CompModel from "../models/Competition.js";
-
+import { methods as enfrentamientoController } from "./../controllers/enfrentamientos.controller.js";
 //OBTENER TODAS LAS COMPETENCIAS DEL MUNDO
-const getCompetitions = async (req, res) => {
+const getCompetitionsApi = async (req, res) => {
     const url = 'https://api-football-v1.p.rapidapi.com/v3/leagues';
     const options = {
         method: 'GET',
@@ -17,11 +17,7 @@ const getCompetitions = async (req, res) => {
         .catch((error)=> res.json({message:error}));
     };   
 
-const getCompetition = async (req, res) => {
-
-};
-
-// AGREGAR O ACTIVAR UNA COMPETENCIA
+// AGREGAR UNA COMPETENCIA
 const addCompetition = async (req, res) => {
     try {
         const { idcompetition, name, anio } = req.body;
@@ -37,7 +33,7 @@ const addCompetition = async (req, res) => {
         O puede que se busquen competencias del anio siguiente y aun no ha comenzado pero si estan cargadas.
          */
         if (!(currentYear === newComp.anio || currentYear - 1 === newComp.anio || currentYear + 1 === newComp.anio)) {
-            return res.status(400).json({ message: "Error, puede que su liga no sea actual o reciente. Verifique", checkbox: false});
+            return res.status(400).json({ message: `Error, puede que su liga no sea actual o reciente. Esta es una liga del año '${newComp.anio}'.`, checkbox: false});
         }
         const connection = await getConnection();
         //valido si existe en bd alguna competencia
@@ -48,22 +44,27 @@ const addCompetition = async (req, res) => {
             const sqlInsertCompetition = "INSERT INTO competitions SET ?";
             await connection.query(sqlInsertCompetition, newComp);
             //Cargo/guardo enfrentamientos de la competencia
-            saveEnfrentamientosCompetenciaRecienActivada(newComp.idcompetition, newComp.anio);
+            saveEnfrentamientosCompetenciaRecienDadaAlta(newComp.idcompetition, newComp.anio);
             setTimeout(() => {
-                return res.status(200).json({message: "Competencia activada con exito, ahora los usuarios podrán visualizarla", checkbox: true});
-            }, 8000)
+                return res.status(200).json({message: "Competencia dada de alta con éxito, recuerdá activarla para que los usuarios la visualicen", checkbox: true});
+            }, 6000)
             
         } else {
-            return res.status(200).json({ message: "Esta competicion ya está activa, cierre sesión y vuelva a intentarlo", checkbox: false});
+            return res.status(200).json({ message: "Esta competicion ya está dada de alta, cierre sesión y vuelva a intentarlo", checkbox: false});
         }
     } catch (error) {
         res.status(500).json(error.message);
     }
 };
 
-async function saveEnfrentamientosCompetenciaRecienActivada(id, anio) {
+async function saveEnfrentamientosCompetenciaRecienDadaAlta(id, anio) {
     try {
         var compRecienActiva  = [];
+        var competicion =[]
+        if(anio===undefined || anio ===null){
+            competicion = await obtenerCompetenciaDadaDeAltaPorId(id);
+            anio = competicion.anio;
+        }
         let enfrentamientosDeLaCompetenciaRecienActivada = [];
         const connection = await getConnection();
         compRecienActiva.push({id: id, anio: anio});
@@ -103,7 +104,7 @@ async function saveEnfrentamientosCompetenciaRecienActivada(id, anio) {
         // Guarda los enfrentamientos en bd
         let resultado = guardaPartido(enfrentamientosDeLaCompetenciaRecienActivada, connection); 
         if(resultado == true){
-            return res.status(200).json({message: "Competencia activada con exito, ahora los usuarios podrán visualizarla", checkbox: true});
+            return res.status(200).json({message: "Competencia dada de alta con éxito.", checkbox: true});
         } else {
             return res.status(400).json({message: "Ocurrió un error al intentar guardar los enfrentamientos de la competencia", checkbox: false});
         }
@@ -158,18 +159,19 @@ async function guardaPartido (enfrentamientosDeLaCompetenciaRecienActivada, conn
 //DESACTIVAR ESTADO COMPETENCIA
 const deleteCompetition = async (req, res) => {
     try {
-        const competition = new CompModel(req.params.idcompetition);
+        const { idcompetition} = req.params;
+        const competition = new CompModel(idcompetition);
         const connection = await getConnection();
         const deleteCompetitionResult = await connection.query("DELETE FROM competitions WHERE idcompetition = ?", competition.idcompetition);
         //Borro los enfrentamientos de la competencia si elimino exitosamente la competencia.
         if (deleteCompetitionResult.affectedRows === 1) {
             const deleteEnfrentamientos = await connection.query("DELETE FROM enfrentamientos WHERE idLiga = ?", competition.idcompetition);
-            res.status(200).json({ message: "Competencia desactivada, los usuarios no podrán visualizarla"});
+            res.status(200).json({ message: "Competencia dada de baja."});
           } else {
             res.status(400).json({ message: "No se encontró la competencia a eliminar." });
         }
     } catch (error) {
-        res.status(500);
+        res.status(400);
         res.send(error.message);
     }
 };
@@ -179,6 +181,7 @@ const updateCompetition = async (req, res) => {
     try {
         const { idcompetition, name, anio } = req.body;
         const comp = new CompModel(idcompetition, name, anio);   
+
         if (comp.name === undefined ) {
             return res.status(400).json({ message: "Hubo un error, cierre sesión y modifique su competencia nuevamente"});
         } 
@@ -195,11 +198,26 @@ const updateCompetition = async (req, res) => {
     }
 };
 
-//OBTENER COMPETENCIAS DADAS DE ALTA O ACTIVAS
+//OBTENER COMPETENCIAS DADAS DE ALTA
+const getCompetitionsAltasBD = async (req, res) => {
+    try {
+        const connection = await getConnection();
+        const resultListComp = await connection.query("SELECT * FROM competitions");
+        const competitions = resultListComp.map(comp => new CompModel(comp.idcompetition, comp.name, comp.anio, comp.activa));
+        return res.status(200).json(competitions);
+
+    } catch (error) {
+        res.status(400);
+        console.log(error.message);
+        return res.send(error.message);
+    }
+};
+
+//OBTENER COMPETENCIAS ACTIVAS
 const getCompetitionsActivas = async (req, res) => {
     try {
         const connection = await getConnection();
-        const resultListComp = await connection.query("SELECT idcompetition, name, anio FROM competitions");
+        const resultListComp = await connection.query("SELECT * FROM competitions WHERE activa='1'");
         return res.status(200).json(resultListComp);
     } catch (error) {
         res.status(400);
@@ -208,15 +226,50 @@ const getCompetitionsActivas = async (req, res) => {
     }
 };
 
+//ACTUALIZAR NOMBRE COMPETENCIA
+const estadoCompetition = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { activa } = req.body;
+        const connection = await getConnection();
+        const result = await connection.query("UPDATE competitions SET activa = ? WHERE idcompetition = ?", [activa, id]);
+        if (result.affectedRows === 1) {
+            if(activa === 1){
+                await saveEnfrentamientosCompetenciaRecienDadaAlta(id);
+            } else {
+                await enfrentamientoController.borrarEnfrentamientosPorLiga(id);
+                
+            }
+            res.status(200).json({ message: "Estado de competencia actualizado con éxito" });
+        } else {
+            res.status(400).json({ message: "Hubo un error con la modificación de la competencia" });
+        }
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+};
 
-
+function obtenerCompetenciaDadaDeAltaPorId(id) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const connection = await getConnection();
+        let idLiga = Number(id);
+        const competenciaResult = await connection.query("SELECT * FROM competitions WHERE idcompetition = ?", idLiga);
+        resolve(competenciaResult[0]);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
 
 
 export const methods = {
-    getCompetitions,
-    getCompetition,
+    getCompetitionsApi,
+    getCompetitionsAltasBD,
+    getCompetitionsActivas,
     addCompetition,
     deleteCompetition,
-    getCompetitionsActivas,
-    updateCompetition
+    updateCompetition,
+    estadoCompetition
 };

@@ -2,6 +2,7 @@ import { getConnection } from "../database/database.js";
 import * as bcryptjs from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import UserModel from "../models/User.js"
+import emailConfig from "../configEmail.js"
 
 const loginUsuario = async (req, res) => {
 
@@ -103,21 +104,24 @@ const addUsuario = async (req, res) => {
             res.status(400).json({ message: "Las contraseñas no son iguales, salga y vuelva a reintentar" });
             return;
         }
-
+        
 
         const connection = await getConnection();
 
+        
         // Verificar si el email o el username ya existen en la base de datos
-        const sqlCheckUser = `SELECT * FROM users WHERE email = ? OR username = ?`;
-        const [resultExistUserInBD] = await connection.query(sqlCheckUser, [email, username]);
+        const sqlCheckUser = `SELECT * FROM users WHERE email = ? OR userName = ?`;
+        const resultExistUserInBD = await connection.query(sqlCheckUser, [email, username]);
 
-        if (resultExistUserInBD.length > 0) {
-            if (resultExistUserInBD[0].username === username) {
-                res.status(400).json({ message: "Este usuario ya está registrado, pruebe con otro" });
-            } else {
-                res.status(400).json({ message: "Este correo electrónico o usuario ya está registrado" });
+        if(resultExistUserInBD!=null){
+            if ( resultExistUserInBD.length > 0) {
+                if (resultExistUserInBD[0].userName === username) {
+                    res.status(400).json({ message: "Este usuario ya está registrado, pruebe con otro" });
+                } else {
+                    res.status(400).json({ message: "Este correo electrónico o usuario ya está registrado" });
+                }
+                return;
             }
-            return;
         }
 
         // Insertar un nuevo usuario
@@ -163,6 +167,62 @@ const deleteUsuario = async (req, res) => {
     
 };
 
+const transporter = nodemailer.createTransport({
+    host: "smtp-mail.outlook.com", // hostname
+    port: 587, // port for secure SMTP
+    secureConnection: false,
+    tls: {
+        ciphers:'SSLv3'
+     },
+    auth: {
+      user: emailConfig.email,
+      pass: emailConfig.password,
+    },
+  });
+
+  function enviarCorreo(destinatario, asunto, cuerpo) {
+    const mailOptions = {
+      from: emailConfig.email,
+      to: destinatario,
+      subject: asunto,
+      text: cuerpo,
+    };
+  
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Correo enviado: " + info.response);
+      }
+    });
+  }
+
+const recuperarPassword = async (req, res) => {
+    try {
+        const { email} = req.body;
+        if (!email) {
+            return res.status(400).send('El email es incorrecto');
+        }
+        const correo = email.email;
+        const user = new UserModel(null, null, null, correo, null, null);
+        const connection = await getConnection();
+        const sqlSearchEmail = `SELECT * FROM users WHERE email = '${user.email}'`;
+        var userResult = await connection.query(sqlSearchEmail);
+
+        if (userResult.length>0) {
+            res.status(200).json({ message: "Hemos enviado un correo con el nombre de usuario y contraseña. Si no lo encuentras, verificá la casilla de spam", user: userResult[0].userName, password: userResult[0].password});
+            //Hacer envio de usuario y contraseña al correo.
+            enviarCorreo(user.email, "Recuperacion password PRODE", "Cuerpo del correo");
+          } else {
+            res.status(200).json({ message: "Puede que este correo no esté registrado, verifique." });
+        }
+    } catch (error) {
+        res.status(500);
+        res.send(error.message);
+    }
+    
+};
+
 export const methods = {
     getUsuarios,
     getUsuario,
@@ -170,4 +230,5 @@ export const methods = {
     updateUsuario,
     deleteUsuario,
     loginUsuario,
+    recuperarPassword
 };
