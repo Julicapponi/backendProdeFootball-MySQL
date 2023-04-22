@@ -2,7 +2,7 @@ import { getConnection } from "../database/database.js";
 import * as bcryptjs from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import UserModel from "../models/User.js"
-import emailConfig from "../configEmail.js"
+
 
 const loginUsuario = async (req, res) => {
 
@@ -167,36 +167,47 @@ const deleteUsuario = async (req, res) => {
     
 };
 
-const transporter = nodemailer.createTransport({
-    host: "smtp-mail.outlook.com", // hostname
-    port: 587, // port for secure SMTP
-    secureConnection: false,
-    tls: {
-        ciphers:'SSLv3'
-     },
-    auth: {
-      user: emailConfig.email,
-      pass: emailConfig.password,
-    },
-  });
-
-  function enviarCorreo(destinatario, asunto, cuerpo) {
-    const mailOptions = {
-      from: emailConfig.email,
-      to: destinatario,
-      subject: asunto,
-      text: cuerpo,
-    };
-  
-    transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log("Correo enviado: " + info.response);
-      }
-    });
-  }
-
+  async function enviarMail  (nombre, userRecovery, passRecovery, correoDestino) {
+    const mailHtml = `
+        <html>
+            <body>
+            <h3>Recuperar contraseña</h1>
+            <p>Hola, <b>${nombre}</b>!</p>
+            <p>Hemos recibido una solicitud para restablecer tu contraseña desde la app Prode.</p>
+            <div style="text-align:center;">
+                 <img src="https://iili.io/H83iidJ.png" style="height:60%; width:60%" alt="Imagen app logo">
+            </div>
+            <p>Tu usuario actual es: <b>${userRecovery}</b></p>
+            <p>Tu contraseña actual es: <b>${passRecovery}</b></p>
+            <p>Si no solicitaste restablecer tu contraseña, ignora este mensaje.</p>
+            <p>Saludos, equipo de app <b>Prode</b></p>
+            </body>
+        </html>`;
+    const config ={
+        host :'smtp.gmail.com',
+        port:465,
+        auth: {
+            user : 'appprode@gmail.com',
+            pass : 'wellivkbeeusjdtw',
+        }
+    }
+    const mensaje = {
+        from : ' appprode@gmail.com',
+        to : correoDestino,
+        subject : 'Recuperación de contraseña, App prode',
+        text : 'Hola',
+        html : mailHtml
+    }
+    const transport = nodemailer.createTransport(config);
+    try {
+      const info = await transport.sendMail(mensaje);
+      console.log(info);
+      return { success: true };
+    } catch (error) {
+      console.log(error);
+      return { success: false, error: error.message };
+    }
+}
 const recuperarPassword = async (req, res) => {
     try {
         const { email} = req.body;
@@ -210,9 +221,23 @@ const recuperarPassword = async (req, res) => {
         var userResult = await connection.query(sqlSearchEmail);
 
         if (userResult.length>0) {
-            res.status(200).json({ message: "Hemos enviado un correo con el nombre de usuario y contraseña. Si no lo encuentras, verificá la casilla de spam", user: userResult[0].userName, password: userResult[0].password});
             //Hacer envio de usuario y contraseña al correo.
-            enviarCorreo(user.email, "Recuperacion password PRODE", "Cuerpo del correo");
+            enviarMail(userResult[0].name, userResult[0].userName, userResult[0].password, correo)
+            .then((respuestaEnvio) => {
+            console.log(respuestaEnvio);
+            //si se envio el correo, success true
+            if(respuestaEnvio.success){
+                res.status(200).json({ message: "Hemos enviado un correo con el nombre de usuario y contraseña. Si no lo encuentras, verificá la casilla de spam", user: userResult[0].userName, password: userResult[0].password});
+            } else {
+                res.status(200).json({ message: "Tuvimos un error con el envio del correo para recuperar tu contraseña, contactese con soporte.", user: userResult[0].userName, password: userResult[0].password});
+            }
+            // hacer algo con la respuestaEnvio
+            })
+            .catch((error) => {
+                console.log(error);
+                // manejar el error
+            });
+          
           } else {
             res.status(200).json({ message: "Puede que este correo no esté registrado, verifique." });
         }

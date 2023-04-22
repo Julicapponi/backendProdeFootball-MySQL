@@ -12,8 +12,8 @@
         "delay": 2500
     },
     "scripts": {
-        "start": "node ./src/index.js",
-        "babel-node": "babel-node --presets=@babel/preset-env",
+        "start": "node --experimental-json-modules ./src/index.js",
+        "babel-node": "babel-node --experimental-json-modules --no-warnings --presets=@babel/preset-env",
         "dev": "nodemon --exec --experimental-modules --es-module-specifier-resolution=node npm run babel-node src/index.js",
         "debug": "nodemon --inspect=brk --es-module-specifier-resolution=node --exec npm run babel-node src/index.js"
     },
@@ -27,6 +27,7 @@
         "dotenv": "^16.0.0",
         "express": "^4.17.3",
         "express-myconnection": "^1.0.4",
+        "googleapis": "^118.0.0",
         "morgan": "^1.10.0",
         "mysql": "^2.18.1",
         "mysql2": "^3.2.0",
