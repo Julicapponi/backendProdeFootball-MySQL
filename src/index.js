@@ -23,25 +23,25 @@ const main = async () => {
 
     const connection = await getConnection();
 
-/*
-
-        //methods.saveEnfrentamientosCompetenciasActivas();
-   
-    
-
-
-    cron.schedule("* * * * * *", () => {
-        console.log("La tarea programada cada 1 segundo se ha ejecutado");
-
-    });
-
-    cron.schedule('0 0 * * *', () => {
-        console.log("La tarea programada de las 00:00 horas se ha ejecutado");
-    });
-
+    //se ejecuta la tarea programada para guardar enfrentamientos de partidos todos los dias a las 23 hs.
     cron.schedule('0 23 * * *', () => {
-        console.log("La tarea programada de las 23:00 horas se ha ejecutado");
+        methods.saveEnfrentamientosCompetenciasActivas();
     });
+
+    //cada 30 minutos
+    cron.schedule('0,30 * * * *', () => {
+        methods.calcularPuntajes();;
+    });
+/*
+    // cada 1 hora
+    cron.schedule('0 * * * *', () => {
+
+    // cada 2 horas
+
+    // a las 00 todos los dias
+    cron.schedule('0 0 * * *', () => {
+    });
+
 */
    
 };

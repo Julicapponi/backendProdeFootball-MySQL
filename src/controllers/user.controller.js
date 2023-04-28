@@ -171,14 +171,13 @@ const deleteUsuario = async (req, res) => {
     const mailHtml = `
         <html>
             <body>
-            <h3>Recuperar contraseña</h1>
             <p>Hola, <b>${nombre}</b>!</p>
             <p>Hemos recibido una solicitud para restablecer tu contraseña desde la app Prode.</p>
             <div style="text-align:center;">
                  <img src="https://iili.io/H83iidJ.png" style="height:60%; width:60%" alt="Imagen app logo">
             </div>
-            <p>Tu usuario actual es: <b>${userRecovery}</b></p>
-            <p>Tu contraseña actual es: <b>${passRecovery}</b></p>
+            <p>Tu usuario es: <b>${userRecovery}</b></p>
+            <p>Tu contraseña es: <b>${passRecovery}</b></p>
             <p>Si no solicitaste restablecer tu contraseña, ignora este mensaje.</p>
             <p>Saludos, equipo de app <b>Prode</b></p>
             </body>

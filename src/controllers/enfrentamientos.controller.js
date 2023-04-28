@@ -5,6 +5,7 @@ var enfrentamientos = [];
 var enfrentamientosDeTodasLasCompActivas = [];
 var enfrentamientosDeLaComp = [];
     const calcularPuntajes = async (req, res) => {
+      const now = new Date();
         try {
             var compActivas  = [];
             var partidosRespuestaOk = [];
@@ -16,14 +17,13 @@ var enfrentamientosDeLaComp = [];
             queryResult.forEach((element,i) => {
                 compActivas.push({id: element.idcompetition, anio: element.anio});
             });
-            // SE OBTIENEN LOS ENFRENTAMIENTOS DESDE LA API DE LAS COMPETENCIAS ACTIVAS
+            //Se obtienen enfrentamientos de los partidos disputados del dia de hoy y anterior
             const enfrentamientos = await getEnfrentamientosApiPorDiaDeHoy(compActivas);
 
-            
-             // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
-        
+
             for (let index = 0; index < enfrentamientos.length; index++) {
                 enfrentamientos[index].forEach((part, i) => {
+                  //si el partido esta finalizado los sumo al array de partidos finalizados
                 if(part.fixture.status.long === 'Match Finished'){
                     partidosApiCulminados.push(part);
                     listIdsDePartidosApiCulminados.push(part.fixture.id);
@@ -31,7 +31,7 @@ var enfrentamientosDeLaComp = [];
                 });
             }
 
-            // Si no hay partidos culminados a la hora de ejecutar la tarea programada, no hace nada, espera a la siguiente tarea programada
+            // Si no hay partidos culminados a la hora de ejecutar la tarea programada no se realiza nada, se esperaría a la siguiente tarea programada si algún partido culminó.
             if(partidosApiCulminados.length != 0){
                 const pronosticosDePartidosCulminadosDeHoy =  await obtenerPronosticosPorId(listIdsDePartidosApiCulminados);
                 for (let i = 0; i < partidosApiCulminados.length; i++) {
@@ -103,9 +103,19 @@ var enfrentamientosDeLaComp = [];
                         }
                     }
                 }
-                res.status(200).json({partidosCalculados: partidosRespuestaOk, message: "Termino exitosamente la sincro de calculo de puntajes"});
+                if(partidosRespuestaOk!=null && partidosRespuestaOk.length != 0){
+                  console.log("/////// Termino exitosamente la sincro de calculo de puntajes ////////");
+                  console.log("/////// HUBO calculo de puntajes ////////");
+                  console.log(partidosRespuestaOk);
+                  return res.status(200).json({partidosCalculados: partidosRespuestaOk, message: "Termino exitosamente la sincro de calculo de puntajes"});
+                } else {
+                  console.log("/////// Termino exitosamente la sincro de calculo de puntajes ////////");
+                  console.log("/////// NO HUBO calculo de puntajes hasta el momento, se espera proxima tarea programada. ////////");
+                  return res.status(200).json({message: "No hubo calculo de puntajes hasta el momento, se espera proxima tarea programada."});
+                }
+
             } 
-            return;
+            return res.status(200).json({message: "No hubo calculo de puntajes hasta el momento, se espera proxima tarea programada."});
         }catch (error) {
             res.status(500).json({message: error.message});
         }
@@ -117,8 +127,7 @@ var enfrentamientosDeLaComp = [];
         const now = new Date();
         const timeZoneOffset = -3 * 60; // offset en minutos para GMT-3
         const date = new Date(now.getTime() + timeZoneOffset * 60 * 1000).toISOString().split('T')[0];
-        console.log('Calcula puntajes para pronosticos del dia de hoy: ', date); // Por ejemplo: "2023-03-05"
-      
+        console.log('Calcula puntajes para pronosticos del dia de hoy: ', now); // Por ejemplo: "2023-03-05"
         const enfrentamientos = [];
     
       
@@ -129,7 +138,7 @@ var enfrentamientosDeLaComp = [];
               //  if (now.getHours() < 5) {
                   // Si la hora actual está entre las 00:00 y las 03:00, obtiene los enfrentamientos del día anterior y el actual
                   const fechaAnterior = new Date(now.getTime() + timeZoneOffset * 60 * 1000 - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                  url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&from=${'2023-03-16'}&to=${date}`;
+                  url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&from=${fechaAnterior}&to=${date}`;
                 /*} else {
                   // Si la hora actual es posterior a las 03:00, solo obtiene los enfrentamientos del día actual
                   fechaConsulta = date;
@@ -502,17 +511,15 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
         
         const editEnfrentamiento = async (req, res) => {
             try {
-                const {id, nameLocal, nameVisit, golLocal, golVisit} = req.body;
+                const {id, nameLocal, nameVisit, golLocal, golVisit, isModificado} = req.body;
                 console.log("Enfrentamiento a editar:", id);
                 if (id === undefined) {
-                    return res.status(400).json({ message: "No se pudo eliminar el grupo" });
+                    return res.status(400).json({ message: "No se pudo editar el enfrentamiento" });
                 }
                 const connection = await getConnection();
-                // inserta un nuevo grupo = '${id}'`)
-                //const result = await connection.query("UPDATE users SET ? WHERE iduser = ?",[user,id]);
                 connection.query(
-                    "UPDATE enfrentamientos SET nameLocal = ?, nameVisit = ?, golLocal = ?, golVisit = ? WHERE idEnfrentamiento = ?",
-                    [nameLocal, nameVisit, golLocal, golVisit, id],
+                    "UPDATE enfrentamientos SET nameLocal = ?, nameVisit = ?, golLocal = ?, golVisit = ?, isModificado = true WHERE idEnfrentamiento = ?",
+                    [nameLocal, nameVisit, golLocal, golVisit, isModificado, id],
                     function (error, results, fields) {
                       if(error){
                         res.status(400).json({message: error});
