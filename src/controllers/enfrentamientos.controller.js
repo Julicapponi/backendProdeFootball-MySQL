@@ -61,7 +61,7 @@ var enfrentamientosDeLaComp = [];
                                 
                                     //INSERTA PUNTAJES PARA EL PRONOSTICO DEL USUARIO DADO EN LA TABLA PUNTAJES
                                     try {
-                                        const sqlInsertPuntaje = `INSERT INTO puntajes (id_user, id_pronostico, puntosSumados, idEnfrentamiento, idComp, roundFecha) VALUES ('${partidoPronosticado.idUser}','${partidoPronosticado.idpronostico}','${puntos}','${partidoPronosticado.idEnfrentamiento}','${partidoApi.league.id}','${partidoApi.league.round}')`;
+                                        const sqlInsertPuntaje = `INSERT INTO puntajes (id_user, id_pronostico, puntosSumados, idEnfrentamiento, idComp, roundFecha) VALUES ('${partidoPronosticado.idUser}','${partidoPronosticado.idpronostico}','${puntos}','${partidoPronosticado.idEnfrentamiento}','${partidoApi.league.id}','${partidoApi.league.round}'); UPDATE enfrentamientos SET isComparado = 1 WHERE idEnfrentamiento = '${partidoPronosticado.idEnfrentamiento}'`;
                                         const resultInsertPuntaje = await new Promise((resolve, reject) => {
                                         connection.query(sqlInsertPuntaje, (err, result) => {
                                             if (err) {
@@ -134,16 +134,9 @@ var enfrentamientosDeLaComp = [];
         try {
           for (const comp of compActivas) {
             if (comp.id) {
-                let url, fechaConsulta;
-              //  if (now.getHours() < 5) {
-                  // Si la hora actual está entre las 00:00 y las 03:00, obtiene los enfrentamientos del día anterior y el actual
+                let url;
                   const fechaAnterior = new Date(now.getTime() + timeZoneOffset * 60 * 1000 - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                   url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&from=${fechaAnterior}&to=${date}`;
-                /*} else {
-                  // Si la hora actual es posterior a las 03:00, solo obtiene los enfrentamientos del día actual
-                  fechaConsulta = date;
-                  url = `https://api-football-v1.p.rapidapi.com/v3/fixtures?league=${comp.id}&season=${comp.anio}&date=${fechaConsulta}`;
-                }*/
               const options = {
                 method: 'GET',
                 headers: {
@@ -350,8 +343,9 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
       });
   
       // SE OBTIENEN LOS ENFRENTAMIENTOS DESDE LA API DE LAS COMPETENCIAS ACTIVAS
+    
       const enfrentamientos = await obtenerEnfrentamientos(compActivas);
-      console.log(enfrentamientos);
+      console.log('enfrentamientos obtenidos',enfrentamientos.length);
       // SE ARMAN LOS ENFRENTAMIENTOS DE ACUERDO A LO QUE LLEGA DE LA API PARA LUEGO GUARDAR EN BD
       for (let index = 0; index < enfrentamientos.length; index++) {
         enfrentamientos[index].forEach((element, i) => {
@@ -374,8 +368,7 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
           let golVisit = element.goals.away;
           let penalesLocal = element.score.penalty.home;
           let penalesVisit = element.score.penalty.away;
-          let isModificado = null;
-          let isComparado = null;
+          let isModificado = null
           let partido = [
             idEnfrentamiento,
             fechaEnfrentamiento,
@@ -396,25 +389,48 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
             golVisit,
             penalesLocal,
             penalesVisit,
-            isModificado,
-            isComparado,
+            isModificado
           ];
           console.log("partido:", partido);
+          if(partido.idEnfrentamiento = 971231){
+            console.log('este resultado');
+          }
           enfrentamientosDeTodasLasCompActivas.push(partido);
         });
       }
   
       // SE GUARDA EN BD TODOS LOS ENFRENTAMIENTOS
-      await guardaPartido(enfrentamientosDeTodasLasCompActivas, connection);
-      return res.sendStatus(200);
+      const resultadoGuardado = await guardaPartido(enfrentamientosDeTodasLasCompActivas, connection);
+      if(resultadoGuardado!= null){
+        if( resultadoGuardado.affectedRows > 0){
+          res.status(200).json({status:200, message: 'Actualizacion exitosa con cambios en registros'});
+        } else  {
+          res.status(200).json({status:200, message: 'Actualizacion exitosa pero sin modificacion de registros.'});
+        }
+      } else {
+        res.status(400).json({status:400, message: 'Hubo un error en la actualizacion de resultados.'});
+      }
+    
     } catch (error) {
       console.error(error);
       res.status(500).send(error.message);
     }
   };
-
-
   
+  async function obtenerEnfrentamientosModificados(){
+    return new Promise(async resolve => {
+        const connection = await getConnection();
+        const sql = `SELECT * FROM enfrentamientos WHERE isModificado = 1`;
+        // Ejecutar la consulta con los IDs como parámetros
+        connection.query(sql, async (err, results) => {
+            if (err) {
+                console.error(err);
+            }
+            resolve (results);
+        });
+    });
+}
+
   async function obtenerEnfrentamientos(compActivas) {
     const enfrentamientos = [];
     const urlBase = 'https://api-football-v1.p.rapidapi.com/v3/fixtures';
@@ -473,7 +489,7 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
   async function guardaPartido (enfrentamientosDeTodasLasCompActivas, connection) {
     console.log(enfrentamientosDeTodasLasCompActivas);
 
-    const sql = "REPLACE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado, isComparado) VALUES ?";
+    const sql = "REPLACE INTO enfrentamientos (idEnfrentamiento, fechaEnfrentamiento, short, idLiga, nameLiga, anioLiga, round, idLocal, nameLocal, logoLocal, ganaLocal, idVisit, nameVisit, logoVisit, ganaVisit, golLocal, golVisit, penalesLocal, penalesVisit, isModificado) VALUES ?";
     
     try {
         if(enfrentamientosDeTodasLasCompActivas.length!=0){
@@ -510,28 +526,29 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
         };
         
         const editEnfrentamiento = async (req, res) => {
-            try {
-                const {id, nameLocal, nameVisit, golLocal, golVisit, isModificado} = req.body;
-                console.log("Enfrentamiento a editar:", id);
-                if (id === undefined) {
-                    return res.status(400).json({ message: "No se pudo editar el enfrentamiento" });
-                }
-                const connection = await getConnection();
-                connection.query(
-                    "UPDATE enfrentamientos SET nameLocal = ?, nameVisit = ?, golLocal = ?, golVisit = ?, isModificado = true WHERE idEnfrentamiento = ?",
-                    [nameLocal, nameVisit, golLocal, golVisit, isModificado, id],
-                    function (error, results, fields) {
-                      if(error){
-                        res.status(400).json({message: error});
-                      } else {
-                        res.status(200).json({message: "Enfrentamiento editado con exito"});
-                      }
-                    }
-                  );
-            } catch (error) {
-                res.status(500);
-                res.send(error.message);
+          try {
+            const { id, nameLocal, nameVisit, golLocal, golVisit } = req.body;
+            console.log("Enfrentamiento a editar:", id);
+            if (!id) {
+              return res.status(400).json({ message: "No se pudo editar el enfrentamiento" });
             }
+            const connection = await getConnection();
+            const query = "UPDATE enfrentamientos SET nameLocal = ?, nameVisit = ?, golLocal = ?, golVisit = ? WHERE idEnfrentamiento = ?";
+            const values = [nameLocal, nameVisit, golLocal, golVisit, id];
+            connection.query(query, values, function (error, results, fields) {
+              if (error) {
+                console.log(error);
+                res.status(400).json({ message: error.message });
+              } else if(results.affectedRows>0){
+                res.status(200).json({ message: "Enfrentamiento editado con éxito" });
+              } else{
+                res.status(200).json({ message: "No se pudo editar el enfrentamietnto" });
+              }
+            });
+          } catch (error) {
+            console.log(error);
+            res.status(400).json({ message: error.message });
+          }
         };
 
         async function partidoModificadoPorAdmin (connection) {

@@ -14,11 +14,12 @@ router.post("/rechazar/postulante/", groupsController.rechazarPostulante);
 router.get("/postulaciones/:idUser", groupsController.listPostulaciones);
 router.get("/postulaciones/pendientes/:idUser", groupsController.listPostulacionesPendientes);
 router.get("/listar/user/", groupsController.listUsersGroup);
-router.get("/buscar/:nameGrupo", groupsController.listGroupsBusqueda);
+router.get("/buscar/:nameGrupo/:idUser", groupsController.listGroupsBusqueda);
 router.post("/salir/", groupsController.deleteUserGroup);
 router.post("/eliminar/", groupsController.deleteGroup);
 router.post("/editar/", groupsController.editGroup);
 router.get("/puntajes/general/:idUser/:idGrupo/", groupsController.obtenerPuntajesGeneralPorUser);
-router.get("/puntajes/fecha/:idGrupo/:fecha/", groupsController.obtenerPuntajesPorFechaPorUser);
+router.get("/puntajes/fechas/:idGrupo/", groupsController.obtenerPuntajesPorFechaPorUser);
+router.get("/competencia/:idGrupo/", groupsController.obtenerCompetenciaPorGrupo);
 
 export default router;

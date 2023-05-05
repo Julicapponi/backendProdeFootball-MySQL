@@ -179,15 +179,30 @@ const gruposPorUser = async (req, res) => {
 };
 
 const listGroupsBusqueda = async (req, res) => {
-    const {nameGrupo} = req.params;
-    console.log('name Grupo: ',nameGrupo);
+    const { nameGrupo, idUser } = req.params;
+    console.log('name Grupo: ', nameGrupo);
     if (nameGrupo === undefined) {
-        res.status(200).json({ message: "No se pudo obtener el grupo"});
+        res.status(200).json({ message: "No se pudo obtener el grupo" });
     }
+
+    // Se obtiene una conexión a la base de datos.
     const connection = await getConnection();
-    const result = await connection.query(`SELECT * FROM grupos WHERE nameGrupo LIKE '%${nameGrupo}%'`);
-    console.log(result);
-    return res.status(200).json(result);
+
+    // Se realiza una consulta a la tabla 'grupos' para buscar todos los grupos que coinciden con el nombre proporcionado.
+    const resultGrupos = await connection.query(`SELECT * FROM grupos WHERE nameGrupo LIKE '%${nameGrupo}%'`);
+    console.log(resultGrupos);
+
+    // Se realiza una consulta a la tabla 'miembros_grupo' para buscar todos los grupos a los que pertenece el usuario.
+    const resultMiembros = await connection.query(`SELECT group_id FROM miembros_grupo WHERE user_id = ${idUser}`);
+
+    // Se crea un array con los 'idgrupo' de los grupos a los que pertenece el usuario.
+    const gruposPertenecientes = resultMiembros.map(miembro => miembro.group_id);
+
+    // Se filtran los grupos coincidentes para excluir aquellos a los que pertenece el usuario.
+    const gruposSinMiembro = resultGrupos.filter(grupo => !gruposPertenecientes.includes(grupo.idgrupo));
+
+    // Se devuelve la lista de grupos que no tienen al usuario como miembro.
+    return res.status(200).json(gruposSinMiembro);
 };
 
 const deleteUserGroup = async (req, res) => {
@@ -268,13 +283,19 @@ const obtenerPuntajesGeneralPorUser = async (req, res) => {
 const obtenerPuntajesPorFechaPorUser = async (req, res) => {
     try {
         const { idGrupo: idGrupo } = req.params;
-        const { fecha: fecha } = req.params;
         const connection = await getConnection();
-    
         const grupo = parseInt(idGrupo);
-        //const puntajesGeneralPorUser = `SELECT users.iduser, users.name, COALESCE(SUM(CASE WHEN puntajes.fechaYHoraCalculado > grupos.fechaYHoraCreado THEN puntajes.puntosSumados ELSE 0 END), 0) AS puntos_acumulados FROM users LEFT JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id LEFT JOIN grupos ON miembros_grupo.group_id = grupos.idgrupo LEFT JOIN puntajes ON users.iduser = puntajes.id_user WHERE grupos.idgrupo = '${idGrupo}' AND grupos.fechaYHoraCreado < puntajes.fechaYHoraCalculado GROUP BY users.iduser`;
-        const puntajesGeneralPorUser = `SELECT users.iduser, users.name, COALESCE(SUM(CASE WHEN puntajes.fechaYHoraCalculado > grupos.fechaYHoraCreado AND puntajes.idComp = grupos.idCompetencia AND puntajes.roundFecha = '${fecha}' THEN puntajes.puntosSumados ELSE 0 END), 0) AS puntos_acumulados FROM users LEFT JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id LEFT JOIN grupos ON miembros_grupo.group_id = grupos.idgrupo LEFT JOIN puntajes ON users.iduser = puntajes.id_user WHERE grupos.idgrupo = '${idGrupo}' AND grupos.fechaYHoraCreado < puntajes.fechaYHoraCalculado GROUP BY users.iduser ORDER BY puntos_acumulados DESC`;
-        const result = await connection.query(puntajesGeneralPorUser);
+        const puntajesTodasLasFechasPorUser = `SELECT puntajes.roundFecha AS fecha, users.iduser, users.name, 
+        COALESCE(SUM(CASE WHEN puntajes.idComp = grupos.idCompetencia 
+        THEN puntajes.puntosSumados ELSE 0 END), 0) AS puntos_acumulados
+        FROM users 
+        LEFT JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id 
+        LEFT JOIN grupos ON miembros_grupo.group_id = grupos.idgrupo 
+        LEFT JOIN puntajes ON users.iduser = puntajes.id_user 
+        WHERE grupos.idgrupo = '${idGrupo}' 
+        GROUP BY puntajes.roundFecha, users.iduser 
+        ORDER BY puntajes.roundFecha DESC, puntos_acumulados DESC`;
+        const result = await connection.query(puntajesTodasLasFechasPorUser);
         return res.status(200).json(result);
     } catch (error) {
         res.status(500);
@@ -304,6 +325,19 @@ const obtenerReporteAciertos = async (req, res) => {
     }
 };
 
+const obtenerCompetenciaPorGrupo = async (req, res) => {
+    try {
+      const connection = await getConnection();
+      const idGrupo = req.params.idGrupo; // id del grupo que quieres buscar
+  
+      const query = `SELECT * FROM grupos g INNER JOIN competitions c ON g.idCompetencia = c.idcompetition WHERE g.idgrupo = ?`;
+      const result = await connection.query(query, [idGrupo]);
+      return res.status(200).json(result);
+    } catch (error) {
+      res.status(500);
+      res.send(error.message);
+    }
+  };
 
 
 
@@ -324,5 +358,6 @@ export const methods = {
     editGroup,
     obtenerPuntajesGeneralPorUser,
     obtenerPuntajesPorFechaPorUser,
-    obtenerReporteAciertos
+    obtenerReporteAciertos,
+    obtenerCompetenciaPorGrupo
 };
