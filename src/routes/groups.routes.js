@@ -21,5 +21,5 @@ router.post("/editar/", groupsController.editGroup);
 router.get("/puntajes/general/:idUser/:idGrupo/", groupsController.obtenerPuntajesGeneralPorUser);
 router.get("/puntajes/fechas/:idGrupo/", groupsController.obtenerPuntajesPorFechaPorUser);
 router.get("/competencia/:idGrupo/", groupsController.obtenerCompetenciaPorGrupo);
-
+router.put("/:id", groupsController.updateGrupo); 
 export default router;
