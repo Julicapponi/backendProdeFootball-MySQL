@@ -13,7 +13,7 @@ router.post("/aceptar/postulante/", groupsController.aceptarPostulante);
 router.post("/rechazar/postulante/", groupsController.rechazarPostulante);
 router.get("/postulaciones/:idUser", groupsController.listPostulaciones);
 router.get("/postulaciones/pendientes/:idUser", groupsController.listPostulacionesPendientes);
-router.get("/listar/user/", groupsController.listUsersGroup);
+router.get("/listar/user/:idGrupo/", groupsController.listUsersGroup);
 router.get("/buscar/:nameGrupo/:idUser", groupsController.listGroupsBusqueda);
 router.post("/salir/", groupsController.deleteUserGroup);
 router.post("/eliminar/", groupsController.deleteGroup);

@@ -533,7 +533,7 @@ const saveEnfrentamientosCompetenciasActivas = async (req, res) => {
               return res.status(400).json({ message: "No se pudo editar el enfrentamiento" });
             }
             const connection = await getConnection();
-            const query = "UPDATE enfrentamientos SET nameLocal = ?, nameVisit = ?, golLocal = ?, golVisit = ? WHERE idEnfrentamiento = ?";
+            const query = "UPDATE enfrentamientos SET nameLocal = ?, nameVisit = ?, golLocal = ?, golVisit = ?, isModificado = 1 WHERE idEnfrentamiento = ?";
             const values = [nameLocal, nameVisit, golLocal, golVisit, id];
             connection.query(query, values, function (error, results, fields) {
               if (error) {

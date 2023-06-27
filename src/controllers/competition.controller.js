@@ -179,8 +179,8 @@ const deleteCompetition = async (req, res) => {
 //ACTUALIZAR NOMBRE COMPETENCIA
 const updateCompetition = async (req, res) => {
     try {
-        const { idcompetition, name, anio } = req.body;
-        const comp = new CompModel(idcompetition, name, anio);   
+        const { idcompetition, name, anio, activa } = req.body;
+        const comp = new CompModel(idcompetition, name, anio, activa);   
 
         if (comp.name === undefined ) {
             return res.status(400).json({ message: "Hubo un error, cierre sesión y modifique su competencia nuevamente"});

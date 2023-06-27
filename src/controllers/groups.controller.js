@@ -150,15 +150,15 @@ const listPostulacionesPendientes = async (req, res) => {
 
 const listUsersGroup = async (req, res) => {
     try {
-        const { groupId } = req.body;
-        console.log(groupId);
-        if (groupId === undefined) {
+        const { idGrupo: idGrupo } = req.params;
+        console.log(idGrupo);
+        if (idGrupo === undefined) {
             res.status(400).json({ message: "No se pudo obtener el grupo" });
         }
         const connection = await getConnection();
         // usuarios pertenenciente a x grupo
-        const sqlListUsersGroup = `SELECT users.name FROM users JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id JOIN grupos ON grupos.idgrupo = miembros_grupo.group_id WHERE grupos.idgrupo = '${groupId}'`;
-        const [result] = await connection.query(sqlListUsersGroup);
+        const sqlListUsersGroup = `SELECT users.* FROM users JOIN miembros_grupo ON users.iduser = miembros_grupo.user_id JOIN grupos ON grupos.idgrupo = miembros_grupo.group_id WHERE grupos.idgrupo = '${idGrupo}'`;
+        const result = await connection.query(sqlListUsersGroup);
         return res.status(200).json(result);
     } catch (error) {
         res.status(500);
