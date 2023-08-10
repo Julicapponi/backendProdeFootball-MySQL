@@ -4,6 +4,7 @@ Para instalar los paquetes de Node.js necesarios (indicados en package.json):
 Crea y asigna tus variables de entorno dentro del archivo .env (en la raíz del proyecto):
 
 ### `HOST=host`
-### `DATABASE=database`
+### `PORT=port`
+### `DATABASE=name-database`
 ### `USER=user`
 ### `PASSWORD=password`
